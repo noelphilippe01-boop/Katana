@@ -1,0 +1,19 @@
+{
+    "name": "Project.Gameplay",
+    "rootNamespace": "Katana",
+    "references": [
+        "Project.Core",
+        "Unity.InputSystem",
+        "Unity.Cinemachine",
+        "Unity.AI.Navigation"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
