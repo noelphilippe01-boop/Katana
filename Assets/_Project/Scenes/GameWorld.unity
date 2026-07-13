@@ -257,7 +257,6 @@ GameObject:
   - component: {fileID: 927935447}
   - component: {fileID: 927935452}
   - component: {fileID: 927935451}
-  - component: {fileID: 927935450}
   - component: {fileID: 927935453}
   - component: {fileID: 927935454}
   m_Layer: 0
@@ -316,21 +315,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &927935450
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 927935446}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 95db0b969dcdc054f820da8bc6029232, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Project.Gameplay::Katana.Characters.MoveDestinationMarker
-  markerDiameter: 1.2
-  markerHeight: 0.08
-  markerColor: {r: 1, g: 0.85, b: 0.2, a: 0.9}
 --- !u!114 &927935451
 MonoBehaviour:
   m_ObjectHideFlags: 0

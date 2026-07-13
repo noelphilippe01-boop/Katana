@@ -4,71 +4,46 @@
 
 Dans Unity, menu **Katana → Setup GameWorld Scene**
 
-Cela crée automatiquement :
-- Sol + NavMesh
-- Joueur avec déplacement clic/ZQSD
-- Caméra isométrique Cinemachine
-- Managers (`GameBootstrapper`)
-- Scène sauvegardée dans `Assets/_Project/Scenes/GameWorld.unity`
+Puis pour une scène existante :
 
-Puis appuyez **Play** pour tester.
+1. **Katana → Setup Combat (current scene)**
+2. **Katana → Fix Camera (current scene)**
+3. **Katana → Fix Player Setup**
+4. **Ctrl+S** puis **Play**
 
 ---
 
-## Méthode manuelle
+## Contenu créé automatiquement
 
-1. **File → New Scene** (Basic ou Empty)
-2. **File → Save As** → `Assets/_Project/Scenes/GameWorld.unity`
-
----
-
-## 3. Sol + NavMesh
-
-1. **GameObject → 3D Object → Plane** → renommer `Ground`
-2. Scale : `(10, 1, 10)`
-3. **Window → AI → Navigation**
-4. Onglet **Bake** → cliquer **Bake**
+- Sol + repères visuels
+- Joueur : `PlayerController`, `PlayerCombat`, `CharacterFacing`, `FacingMarker`
+- Caméra isométrique Cinemachine (suivi stable + zoom molette)
+- Managers : `GameBootstrapper`, `CombatHud`, `EnemySpawner`, etc.
+- Scène : `Assets/_Project/Scenes/GameWorld.unity`
 
 ---
 
-## 4. Joueur
+## Contrôles (Play Mode)
 
-1. **GameObject → 3D Object → Capsule** → renommer `Player`
-2. Tag : **Player** (créer le tag si absent)
-3. **Add Component** :
-   - `Nav Mesh Agent`
-   - `Player Movement Controller`
-   - `Player Input Handler`
-4. Position : `(0, 1, 0)`
-
----
-
-## 5. Caméra isométrique (Cinemachine 3)
-
-1. Sélectionner **Main Camera** — la laisser (Cinemachine la pilote)
-2. **GameObject → Cinemachine → Cinemachine Camera** → renommer `CM_Isometric`
-3. Sur `CM_Isometric` :
-   - **Tracking Target** = `Player`
-   - Rotation du composant **Rotation Control** ou transform : inclinaison ~**45°** sur X
-   - Distance / offset pour vue isométrique (ex. position caméra `(10, 15, -10)` en regardant l'origine)
-4. Sur un GameObject vide `--- MANAGERS ---` :
-   - Add `Game Bootstrapper`
-   - Add `Isometric Camera Controller`
-   - Assigner **Cinemachine Camera** = `CM_Isometric`, **Target** = `Player`
+| Action | Contrôle |
+|--------|----------|
+| Déplacement | Clic sol ou **ZQSD** (AZERTY) |
+| Attaque | Clic sur ennemi rouge |
+| Zoom | Molette |
+| Loot | Approche la sphère dorée |
 
 ---
 
-## 6. Test Play Mode
+## Menus Katana utiles
 
-1. Appuyer **Play**
-2. **Clic gauche** sur le sol → le joueur se déplace
-3. **ZQSD** → déplacement directionnel (clavier AZERTY)
-
----
-
-## 7. Build Settings
-
-**File → Build Settings** → **Add Open Scenes** pour inclure `GameWorld`
+| Menu | Usage |
+|------|-------|
+| Setup GameWorld Scene | Recréer la scène from scratch |
+| Setup Combat | Ennemis, loot, spawn, HUD |
+| Fix Camera | Centrage joueur + zoom |
+| Fix Player Setup | Composants joueur à jour |
+| Cleanup Scene | Retire scripts manquants / obsolètes |
+| Bake NavMesh (editor only) | Préparer pathfinding IA futur |
 
 ---
 
@@ -76,7 +51,22 @@ Puis appuyez **Play** pour tester.
 
 | Problème | Solution |
 |----------|----------|
-| Le joueur ne bouge pas | NavMesh baked ? Player a NavMeshAgent ? |
-| Clic ignoré | Ground a un Collider ? Layer Ground dans PlayerInputHandler |
-| Input System erreur | **Edit → Project Settings → Player → Active Input Handling** = Input System Package |
-| Cinemachine introuvable | Package Cinemachine 3.x installé, script utilise `CinemachineCamera` |
+| Le joueur ne bouge pas | **Edit → Project Settings → Player → Active Input Handling** = **Both** ; cliquer dans la vue Game |
+| ZQSD ne répond pas | Même réglage Input = Both ; clavier AZERTY |
+| Clic ignoré | Le sol `Ground` doit avoir un Collider |
+| Menu Katana incomplet | Attendre la fin de la compilation (Console vide) |
+| Scripts manquants (rose) | **Katana → Cleanup Scene** |
+
+---
+
+## NavMesh (optionnel)
+
+Le joueur utilise un **mouvement direct** (pas de `NavMeshAgent`).
+
+Le menu **Bake NavMesh** prépare le sol pour une future IA ennemie — non requis pour jouer.
+
+---
+
+## Build Settings
+
+**File → Build Settings** → **Add Open Scenes** pour inclure `GameWorld`

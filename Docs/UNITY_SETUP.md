@@ -366,132 +366,30 @@ namespace Katana.Networking
 
 ---
 
-## Étape 8 — Joueur et caméra
+## Étape 8 — Joueur et caméra (état actuel)
 
-### `PlayerInputHandler.cs` — `Scripts/Characters/`
+> Les anciens scripts `PlayerInputHandler` / `PlayerMovementController` ont été retirés.
 
-```csharp
-using Katana.Core;
-using UnityEngine;
-using UnityEngine.InputSystem;
+| Script | Rôle |
+|--------|------|
+| `PlayerController` | Déplacement clic + ZQSD (AZERTY) |
+| `PlayerCombat` | Cible + attaque automatique |
+| `CharacterFacing` | Rotation fluide |
+| `FacingMarker` | Repère d'orientation |
+| `CameraFollowTarget` | Suivi caméra stable |
+| `IsometricCameraController` | Zoom molette + angle dynamique |
 
-namespace Katana.Characters
-{
-    [RequireComponent(typeof(PlayerMovementController))]
-    public class PlayerInputHandler : MonoBehaviour
-    {
-        [SerializeField] LayerMask groundLayer = ~0;
-        [SerializeField] LayerMask targetLayer = ~0;
-        Camera mainCamera;
-
-        void Awake() => mainCamera = Camera.main;
-
-        void Update()
-        {
-            if (Mouse.current == null || Keyboard.current == null) return;
-
-            if (Mouse.current.leftButton.wasPressedThisFrame)
-                HandleClick();
-
-            if (Keyboard.current.wKey.isPressed) MoveDirection(Vector3.forward);
-            if (Keyboard.current.sKey.isPressed) MoveDirection(Vector3.back);
-            if (Keyboard.current.aKey.isPressed) MoveDirection(Vector3.left);
-            if (Keyboard.current.dKey.isPressed) MoveDirection(Vector3.right);
-        }
-
-        void HandleClick()
-        {
-            var ray = mainCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
-
-            if (Physics.Raycast(ray, out var hit, 200f, targetLayer) && hit.collider.CompareTag("Enemy"))
-            {
-                GameEventBus.RaiseTargetSelected(hit.collider.gameObject);
-                return;
-            }
-
-            if (Physics.Raycast(ray, out hit, 200f, groundLayer))
-                GameEventBus.RaisePlayerMoveRequested(hit.point);
-        }
-
-        void MoveDirection(Vector3 localDir)
-        {
-            var camForward = Vector3.ProjectOnPlane(mainCamera.transform.forward, Vector3.up).normalized;
-            var camRight = Vector3.ProjectOnPlane(mainCamera.transform.right, Vector3.up).normalized;
-            var worldDir = camForward * localDir.z + camRight * localDir.x;
-            GameEventBus.RaisePlayerMoveRequested(transform.position + worldDir * 3f);
-        }
-    }
-}
-```
-
-### `PlayerMovementController.cs`
-
-```csharp
-using Katana.Core;
-using UnityEngine;
-using UnityEngine.AI;
-
-namespace Katana.Characters
-{
-    [RequireComponent(typeof(NavMeshAgent))]
-    public class PlayerMovementController : MonoBehaviour
-    {
-        NavMeshAgent agent;
-
-        void Awake()
-        {
-            agent = GetComponent<NavMeshAgent>();
-            GameEventBus.PlayerMoveRequested += OnMoveRequested;
-        }
-
-        void OnDestroy() => GameEventBus.PlayerMoveRequested -= OnMoveRequested;
-
-        void OnMoveRequested(Vector3 destination)
-        {
-            if (NavMesh.SamplePosition(destination, out var hit, 2f, NavMesh.AllAreas))
-                agent.SetDestination(hit.position);
-        }
-    }
-}
-```
-
-### `IsometricCameraController.cs` — `Scripts/Camera/`
-
-```csharp
-using Cinemachine;
-using UnityEngine;
-
-namespace Katana.CameraSystems
-{
-    public class IsometricCameraController : MonoBehaviour
-    {
-        [SerializeField] CinemachineVirtualCamera virtualCamera;
-        [SerializeField] Transform target;
-
-        void LateUpdate()
-        {
-            if (virtualCamera != null && target != null)
-                virtualCamera.Follow = target;
-        }
-    }
-}
-```
+Voir `Docs/SCENE_SETUP.md` pour les menus **Katana**.
 
 ---
 
 ## Étape 9 — Scène GameWorld (Unity Editor)
 
-1. **File → New Scene** → sauvegarder `Assets/_Project/Scenes/GameWorld.unity`
-2. Créer un **Plane** (sol) → scale (10, 1, 10)
-3. **Window → AI → Navigation** → Bake NavMesh
-4. Créer **Player** :
-   - Capsule + `NavMeshAgent` + `PlayerMovementController` + `PlayerInputHandler`
-   - Tag : `Player`
-5. Créer **CM vcam** (Cinemachine Virtual Camera) :
-   - Follow = Player
-   - Body = Framing Transposer, angle ~45° sur l'axe X
-6. Ajouter `GameBootstrapper` sur un GameObject `--- MANAGERS ---`
-7. **File → Build Settings** → ajouter `GameWorld` à la liste
+Menu **Katana → Setup GameWorld Scene** (recommandé).
+
+Scène existante : **Setup Combat**, **Fix Camera**, **Fix Player Setup**, **Ctrl+S**.
+
+Détails : `Docs/SCENE_SETUP.md`
 
 ---
 
@@ -517,10 +415,6 @@ git push -u origin main
 
 ---
 
-## Prochaine session (après validation Play Mode)
+## Prochaine session
 
-- Combat : `CombatController`, `StatSystem`, `AbilityData` ScriptableObject
-- Ennemi dummy avec tag `Enemy` + barre de vie
-- Highlight de cible au clic
-
-Demandez dans Cursor : **« exécute la phase 2 du plan Katana »**
+Voir `Docs/SCENE_SETUP.md` — combat, loot, spawn et caméra sont déjà en place.

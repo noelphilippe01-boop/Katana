@@ -1,3 +1,4 @@
+using Katana.CameraSystems;
 using Katana.Characters;
 using Katana.Combat;
 using UnityEditor;
@@ -10,11 +11,21 @@ namespace Katana.Editor
 {
     public static class KatanaPlayerFix
     {
-        [MenuItem("Katana/Fix Player Movement")]
-        public static void FixPlayerMovement()
+        [MenuItem("Katana/Fix Player Setup")]
+        public static void FixPlayerSetup()
         {
             CleanupManagers();
+            EnsurePlayerComponents();
+            KatanaCameraTools.FixCameraInScene();
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+            Debug.Log("Katana: Joueur et camera mis a jour. Ctrl+S puis Play.");
+        }
 
+        [MenuItem("Katana/Fix Player Movement", false, 1)]
+        public static void FixPlayerMovement() => FixPlayerSetup();
+
+        static void EnsurePlayerComponents()
+        {
             var player = GameObject.FindGameObjectWithTag("Player");
             if (player == null)
             {
@@ -22,24 +33,7 @@ namespace Katana.Editor
                 return;
             }
 
-            foreach (var agent in player.GetComponents<NavMeshAgent>())
-                Object.DestroyImmediate(agent);
-
-            foreach (var capsule in player.GetComponents<CapsuleCollider>())
-                Object.DestroyImmediate(capsule);
-
-            var meshCollider = player.GetComponent<MeshCollider>();
-            if (meshCollider != null)
-                Object.DestroyImmediate(meshCollider);
-
-            foreach (var cc in player.GetComponents<CharacterController>())
-                Object.DestroyImmediate(cc);
-
-            foreach (var old in player.GetComponents<PlayerInputHandler>())
-                Object.DestroyImmediate(old);
-
-            foreach (var old in player.GetComponents<PlayerMovementController>())
-                Object.DestroyImmediate(old);
+            RemoveLegacyPhysics(player);
 
             if (player.GetComponent<PlayerController>() == null)
                 player.AddComponent<PlayerController>();
@@ -56,8 +50,23 @@ namespace Katana.Editor
             if (player.GetComponent<FacingMarker>() == null)
                 player.AddComponent<FacingMarker>();
 
-            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-            Debug.Log("Katana: Player mis a jour (mouvement, combat, orientation, loot). Ctrl+S puis Play.");
+            CameraFollowTarget.EnsureOn(player.transform);
+        }
+
+        static void RemoveLegacyPhysics(GameObject player)
+        {
+            foreach (var agent in player.GetComponents<NavMeshAgent>())
+                Object.DestroyImmediate(agent);
+
+            foreach (var capsule in player.GetComponents<CapsuleCollider>())
+                Object.DestroyImmediate(capsule);
+
+            var meshCollider = player.GetComponent<MeshCollider>();
+            if (meshCollider != null)
+                Object.DestroyImmediate(meshCollider);
+
+            foreach (var cc in player.GetComponents<CharacterController>())
+                Object.DestroyImmediate(cc);
         }
 
         static void CleanupManagers()
@@ -65,12 +74,6 @@ namespace Katana.Editor
             var managers = GameObject.Find("--- MANAGERS ---");
             if (managers == null)
                 return;
-
-            foreach (var movement in managers.GetComponents<PlayerMovementController>())
-                Object.DestroyImmediate(movement);
-
-            foreach (var input in managers.GetComponents<PlayerInputHandler>())
-                Object.DestroyImmediate(input);
 
             foreach (var playerCtrl in managers.GetComponents<PlayerController>())
                 Object.DestroyImmediate(playerCtrl);

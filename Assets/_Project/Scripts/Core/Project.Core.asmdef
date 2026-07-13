@@ -1,9 +1,7 @@
 {
     "name": "Project.Core",
     "rootNamespace": "Katana.Core",
-    "references": [
-        "Unity.AI.Navigation"
-    ],
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

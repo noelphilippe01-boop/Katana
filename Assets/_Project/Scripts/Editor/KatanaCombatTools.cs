@@ -32,6 +32,27 @@ namespace Katana.Editor
             Debug.Log("Katana: Ennemi ajoute.");
         }
 
+        [MenuItem("Katana/Cleanup Scene (current scene)")]
+        public static void CleanupCurrentScene()
+        {
+            RemoveMissingScripts();
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+            Debug.Log("Katana: Scene nettoyee (scripts manquants retires).");
+        }
+
+        static void RemoveMissingScripts()
+        {
+            foreach (var root in SceneManager.GetActiveScene().GetRootGameObjects())
+                RemoveMissingScriptsRecursive(root);
+        }
+
+        static void RemoveMissingScriptsRecursive(GameObject go)
+        {
+            GameObjectUtility.RemoveMonoBehavioursWithMissingScript(go);
+            foreach (Transform child in go.transform)
+                RemoveMissingScriptsRecursive(child.gameObject);
+        }
+
         static void EnsureTags()
         {
             EnsureTag("Player");

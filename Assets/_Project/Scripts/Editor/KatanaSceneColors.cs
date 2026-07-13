@@ -1,4 +1,3 @@
-using Katana.Characters;
 using Katana.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -32,7 +31,7 @@ namespace Katana.Editor
 
             StyleMainCamera();
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-            Debug.Log("Katana: sol vert foncé + joueur bleu appliqués. Sauvegardez la scène (Ctrl+S).");
+            Debug.Log("Katana: sol vert fonce + joueur bleu appliques. Sauvegardez la scene (Ctrl+S).");
         }
 
         static void EnsureBootstrapInScene()
@@ -41,12 +40,9 @@ namespace Katana.Editor
 
             if (managers.GetComponent<SceneVisualBootstrap>() == null)
                 managers.AddComponent<SceneVisualBootstrap>();
-            if (managers.GetComponent<NavMeshBootstrap>() == null)
-                managers.AddComponent<NavMeshBootstrap>();
+
             if (managers.GetComponent<SceneLandmarks>() == null)
                 managers.AddComponent<SceneLandmarks>();
-            if (managers.GetComponent<MoveDestinationMarker>() == null)
-                managers.AddComponent<MoveDestinationMarker>();
         }
 
         static void StyleMainCamera()

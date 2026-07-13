@@ -4,8 +4,7 @@
     "references": [
         "Project.Core",
         "Unity.InputSystem",
-        "Unity.Cinemachine",
-        "Unity.AI.Navigation"
+        "Unity.Cinemachine"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

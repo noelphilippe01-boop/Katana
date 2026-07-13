@@ -97,6 +97,7 @@ namespace Katana.Editor
             player.AddComponent<PlayerCombat>();
             player.AddComponent<PlayerInventory>();
             player.AddComponent<FacingMarker>();
+            CameraFollowTarget.EnsureOn(player.transform);
             KatanaMaterials.ApplyToRenderer(player, KatanaMaterials.GetOrCreatePlayerMaterial());
 
             return player;
@@ -150,9 +151,7 @@ namespace Katana.Editor
             var managers = new GameObject("--- MANAGERS ---");
             managers.AddComponent<GameBootstrapper>();
             managers.AddComponent<SceneVisualBootstrap>();
-            managers.AddComponent<NavMeshBootstrap>();
             managers.AddComponent<SceneLandmarks>();
-            managers.AddComponent<MoveDestinationMarker>();
             managers.AddComponent<CombatHud>();
             managers.AddComponent<EnemySpawner>();
 
