@@ -238,7 +238,7 @@ Transform:
   m_GameObject: {fileID: 100379224}
   serializedVersion: 2
   m_LocalRotation: {x: 0.3649717, y: -0.2778159, z: 0.115075134, w: 0.88111955}
-  m_LocalPosition: {x: 10, y: 15, z: -10}
+  m_LocalPosition: {x: 9.701425, y: 15.552137, z: -9.701425}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -258,6 +258,8 @@ GameObject:
   - component: {fileID: 927935452}
   - component: {fileID: 927935451}
   - component: {fileID: 927935450}
+  - component: {fileID: 927935453}
+  - component: {fileID: 927935454}
   m_Layer: 0
   m_Name: --- MANAGERS ---
   m_TagString: Untagged
@@ -278,7 +280,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Project.Gameplay::Katana.CameraSystems.IsometricCameraController
   cinemachineCamera: {fileID: 1231131933}
-  target: {fileID: 1879537750}
+  target: {fileID: 1358600378}
+  pitch: 45
+  yaw: -35
+  zoomDistance: 20
+  minZoom: 11
+  maxZoom: 34
+  zoomStep: 1.4
+  zoomSmoothing: 8
 --- !u!114 &927935448
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -353,6 +362,35 @@ MonoBehaviour:
   groundColor: {r: 0.28, g: 0.38, b: 0.26, a: 1}
   playerColor: {r: 0.15, g: 0.45, b: 0.95, a: 1}
   skyColor: {r: 0.12, g: 0.14, b: 0.18, a: 1}
+--- !u!114 &927935453
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 927935446}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b889a4900d44c843bac0831eb49b1aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Project.Gameplay::Katana.Combat.CombatHud
+--- !u!114 &927935454
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 927935446}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c12ebc9792bc5643a9792acd3398176, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Project.Gameplay::Katana.Combat.EnemySpawner
+  initialCount: 5
+  spawnRadius: 14
+  respawnDelay: 4
+  maxAlive: 8
+  minSpawnDistanceFromPlayer: 4
 --- !u!1 &1046015000
 GameObject:
   m_ObjectHideFlags: 0
@@ -476,6 +514,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1231131934}
   - component: {fileID: 1231131933}
+  - component: {fileID: 1231131936}
   m_Layer: 0
   m_Name: CM_Isometric
   m_TagString: Untagged
@@ -503,9 +542,9 @@ MonoBehaviour:
   m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
-    TrackingTarget: {fileID: 1879537750}
+    TrackingTarget: {fileID: 1358600378}
     LookAtTarget: {fileID: 0}
-    CustomLookAtTarget: 0
+    CustomLookAtTarget: 1
   Lens:
     FieldOfView: 40
     OrthographicSize: 10
@@ -535,12 +574,76 @@ Transform:
   m_GameObject: {fileID: 1231131932}
   serializedVersion: 2
   m_LocalRotation: {x: 0.3649717, y: -0.2778159, z: 0.115075134, w: 0.88111955}
-  m_LocalPosition: {x: 10, y: 15, z: -10}
+  m_LocalPosition: {x: 9.701425, y: 15.552137, z: -9.701425}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1231131936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231131932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b617507da6d07e749b7efdb34e1173e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineFollow
+  TrackerSettings:
+    BindingMode: 4
+    PositionDamping: {x: 0, y: 0, z: 0}
+    AngularDampingMode: 0
+    RotationDamping: {x: 1, y: 1, z: 1}
+    QuaternionDamping: 1
+  FollowOffset: {x: 9.701425, y: 14.552137, z: -9.701425}
+--- !u!1 &1358600377
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1358600378}
+  - component: {fileID: 1358600379}
+  m_Layer: 0
+  m_Name: CameraTarget
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1358600378
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1358600377}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1879537750}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1358600379
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1358600377}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb84b433af32a2141870330002c021e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Project.Gameplay::Katana.CameraSystems.CameraFollowTarget
+  stableHeight: 1
 --- !u!1 &1879537749
 GameObject:
   m_ObjectHideFlags: 0
@@ -553,6 +656,10 @@ GameObject:
   - component: {fileID: 1879537756}
   - component: {fileID: 1879537755}
   - component: {fileID: 1879537758}
+  - component: {fileID: 1879537759}
+  - component: {fileID: 1879537762}
+  - component: {fileID: 1879537761}
+  - component: {fileID: 1879537760}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -572,7 +679,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1358600378}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &1879537755
@@ -646,6 +754,64 @@ MonoBehaviour:
   m_EditorClassIdentifier: Project.Gameplay::Katana.Characters.PlayerController
   moveSpeed: 6
   stoppingDistance: 0.35
+  bobAmplitude: 0.035
+  bobFrequency: 10
+  groundHeight: 1
+--- !u!114 &1879537759
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1879537749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b441a6ddbe029034ab0bced459454839, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Project.Gameplay::Katana.Characters.PlayerCombat
+  attackRange: 1.8
+  attackDamage: 10
+  attacksPerSecond: 1.5
+--- !u!114 &1879537760
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1879537749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3401f6cb93ba7f84eb1d56c67ea52b04, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Project.Gameplay::Katana.Combat.FacingMarker
+  poleColor: {r: 0.95, g: 0.9, b: 0.2, a: 1}
+  tipColor: {r: 1, g: 0.45, b: 0.1, a: 1}
+  heightOffset: 1.05
+--- !u!114 &1879537761
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1879537749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fceccadb04cda2e45857060e4806acf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Project.Gameplay::Katana.Characters.PlayerInventory
+--- !u!114 &1879537762
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1879537749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b07876ff427ad345bde30f124749c2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Project.Gameplay::Katana.Characters.CharacterFacing
+  rotationSpeed: 14
 --- !u!1 &2069120954
 GameObject:
   m_ObjectHideFlags: 0

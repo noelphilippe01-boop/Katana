@@ -8,6 +8,7 @@ namespace Katana.Editor
         const string MaterialsFolder = "Assets/_Project/Art/Materials";
         const string GroundPath = MaterialsFolder + "/Mat_Ground.mat";
         const string PlayerPath = MaterialsFolder + "/Mat_Player.mat";
+        const string EnemyPath = MaterialsFolder + "/Mat_Enemy.mat";
 
         public static Material GetOrCreateGroundMaterial()
         {
@@ -30,6 +31,18 @@ namespace Katana.Editor
 
             var mat = CreateStandardMaterial(new Color(0.15f, 0.45f, 0.95f), 0.6f);
             AssetDatabase.CreateAsset(mat, PlayerPath);
+            return mat;
+        }
+
+        public static Material GetOrCreateEnemyMaterial()
+        {
+            EnsureFolder();
+            var existing = AssetDatabase.LoadAssetAtPath<Material>(EnemyPath);
+            if (existing != null)
+                return existing;
+
+            var mat = CreateStandardMaterial(new Color(0.85f, 0.2f, 0.18f), 0.45f);
+            AssetDatabase.CreateAsset(mat, EnemyPath);
             return mat;
         }
 

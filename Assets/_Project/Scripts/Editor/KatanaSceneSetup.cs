@@ -1,8 +1,10 @@
 using Katana.CameraSystems;
 using Katana.Characters;
+using Katana.Combat;
 using Katana.Core;
 using Unity.AI.Navigation;
 using Unity.Cinemachine;
+using Unity.Cinemachine.TargetTracking;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -33,7 +35,7 @@ namespace Katana.Editor
             BakeNavMesh(ground);
             AddSceneToBuildSettings(ScenePath);
 
-            Debug.Log("Katana: GameWorld ready. Press Play — click to move, ZQSD for direction.");
+            Debug.Log("Katana: GameWorld ready. Clic sol = deplacer, clic ennemi = attaquer, ZQSD = deplacer.");
         }
 
         static void AddSceneToBuildSettings(string scenePath)
@@ -90,7 +92,11 @@ namespace Katana.Editor
 
             Object.DestroyImmediate(player.GetComponent<CapsuleCollider>());
 
+            player.AddComponent<CharacterFacing>();
             player.AddComponent<PlayerController>();
+            player.AddComponent<PlayerCombat>();
+            player.AddComponent<PlayerInventory>();
+            player.AddComponent<FacingMarker>();
             KatanaMaterials.ApplyToRenderer(player, KatanaMaterials.GetOrCreatePlayerMaterial());
 
             return player;
@@ -111,11 +117,19 @@ namespace Katana.Editor
             if (brain == null)
                 mainCamera.gameObject.AddComponent<CinemachineBrain>();
 
+            var cameraTarget = CameraFollowTarget.EnsureOn(player);
+
             var cmGo = new GameObject("CM_Isometric");
             var cmCamera = cmGo.AddComponent<CinemachineCamera>();
-            cmCamera.Follow = player;
+            cmCamera.Follow = cameraTarget;
+            cmCamera.LookAt = null;
+            cmCamera.Target.TrackingTarget = cameraTarget;
+            cmCamera.Target.LookAtTarget = null;
 
-            cmGo.transform.position = new Vector3(10f, 15f, -10f);
+            var follow = cmGo.AddComponent<CinemachineFollow>();
+            follow.FollowOffset = new Vector3(10f, 15f, -10f).normalized * 20f;
+            follow.TrackerSettings.BindingMode = BindingMode.WorldSpace;
+            follow.TrackerSettings.PositionDamping = Vector3.zero;
             cmGo.transform.rotation = Quaternion.Euler(45f, -35f, 0f);
 
             return cmCamera;
@@ -139,11 +153,13 @@ namespace Katana.Editor
             managers.AddComponent<NavMeshBootstrap>();
             managers.AddComponent<SceneLandmarks>();
             managers.AddComponent<MoveDestinationMarker>();
+            managers.AddComponent<CombatHud>();
+            managers.AddComponent<EnemySpawner>();
 
             var cameraController = managers.AddComponent<IsometricCameraController>();
             var so = new SerializedObject(cameraController);
             so.FindProperty("cinemachineCamera").objectReferenceValue = cmCamera;
-            so.FindProperty("target").objectReferenceValue = player;
+            so.FindProperty("target").objectReferenceValue = CameraFollowTarget.EnsureOn(player);
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

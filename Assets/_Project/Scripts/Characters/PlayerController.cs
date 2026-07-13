@@ -1,21 +1,30 @@
+using Katana.CameraSystems;
 using Katana.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace Katana.Characters
 {
+    [RequireComponent(typeof(CharacterFacing))]
     public class PlayerController : MonoBehaviour
     {
         [SerializeField] float moveSpeed = 6f;
         [SerializeField] float stoppingDistance = 0.35f;
+        [SerializeField] float bobAmplitude = 0.035f;
+        [SerializeField] float bobFrequency = 10f;
+        [SerializeField] float groundHeight = 1f;
 
         Camera cam;
+        CharacterFacing facing;
         Vector3? destination;
         GameObject clickMarker;
+        float bobPhase;
+        bool isMoving;
 
         void Awake()
         {
             cam = Camera.main;
+            facing = GetComponent<CharacterFacing>();
             CreateClickMarker();
         }
 
@@ -24,9 +33,11 @@ namespace Katana.Characters
             if (cam == null)
                 cam = Camera.main;
 
+            isMoving = false;
             HandleKeyboard();
             HandleMouseClick();
             MoveTowardDestination();
+            ApplyMovementBobbing();
         }
 
         void HandleKeyboard()
@@ -37,9 +48,12 @@ namespace Katana.Characters
 
             destination = null;
             HideMarker();
+            GameEventBus.RaiseTargetSelected(null);
 
             var worldMove = ToWorldDirection(move.normalized);
             transform.position += worldMove * (moveSpeed * Time.deltaTime);
+            facing.FaceDirection(worldMove);
+            isMoving = true;
         }
 
         static Vector3 ReadKeyboardMove()
@@ -49,7 +63,6 @@ namespace Katana.Characters
 
             if (keyboard != null)
             {
-                // Lit les touches affichees sur le clavier actif (AZERTY: Z/Q/S/D).
                 if (IsLayoutKeyPressed(keyboard, "z", Key.W)) move.z += 1f;
                 if (IsLayoutKeyPressed(keyboard, "s", Key.S)) move.z -= 1f;
                 if (IsLayoutKeyPressed(keyboard, "q", Key.A)) move.x -= 1f;
@@ -57,7 +70,6 @@ namespace Katana.Characters
                 return move;
             }
 
-            // Legacy Input: KeyCode = positions physiques US (= cluster ZQSD sur AZERTY).
             if (Input.GetKey(KeyCode.W)) move.z += 1f;
             if (Input.GetKey(KeyCode.S)) move.z -= 1f;
             if (Input.GetKey(KeyCode.A)) move.x -= 1f;
@@ -75,14 +87,6 @@ namespace Katana.Characters
             return keyControl.isPressed;
         }
 
-        static bool IsForwardPressed()
-        {
-            var keyboard = Keyboard.current;
-            return keyboard != null
-                ? IsLayoutKeyPressed(keyboard, "z", Key.W)
-                : Input.GetKey(KeyCode.W);
-        }
-
         void HandleMouseClick()
         {
             if (!Input.GetMouseButtonDown(0) || cam == null)
@@ -95,6 +99,16 @@ namespace Katana.Characters
             if (hit.collider.transform == transform)
                 return;
 
+            if (hit.collider.CompareTag("Enemy"))
+            {
+                var enemy = hit.collider.gameObject;
+                destination = enemy.transform.position;
+                ShowMarker(enemy.transform.position);
+                GameEventBus.RaiseTargetSelected(enemy);
+                return;
+            }
+
+            GameEventBus.RaiseTargetSelected(null);
             destination = hit.point;
             ShowMarker(hit.point);
             GameEventBus.RaisePlayerMoveRequested(hit.point);
@@ -116,7 +130,25 @@ namespace Katana.Characters
                 return;
             }
 
-            transform.position += direction.normalized * (moveSpeed * Time.deltaTime);
+            var step = direction.normalized * (moveSpeed * Time.deltaTime);
+            transform.position += step;
+            facing.FaceDirection(direction);
+            isMoving = true;
+        }
+
+        void ApplyMovementBobbing()
+        {
+            if (isMoving)
+                bobPhase += Time.deltaTime * bobFrequency;
+
+            var bobOffset = isMoving ? Mathf.Sin(bobPhase) * bobAmplitude : 0f;
+            var position = transform.position;
+            transform.position = new Vector3(position.x, groundHeight + bobOffset, position.z);
+        }
+
+        void Start()
+        {
+            CameraFollowTarget.EnsureOn(transform, groundHeight);
         }
 
         Vector3 ToWorldDirection(Vector3 localDir)
@@ -151,14 +183,6 @@ namespace Katana.Characters
         {
             if (clickMarker != null)
                 clickMarker.SetActive(false);
-        }
-
-        void OnGUI()
-        {
-            var keyboard = Keyboard.current;
-            var wLegacy = Input.GetKey(KeyCode.W);
-            GUI.Label(new Rect(12f, 12f, 520f, 100f),
-                $"Katana debug\nPosition: {transform.position:F1}\nZ AZERTY: {IsForwardPressed()}\nW legacy: {wLegacy}\nInput: {(keyboard != null ? "New" : "Old")}");
         }
     }
 }

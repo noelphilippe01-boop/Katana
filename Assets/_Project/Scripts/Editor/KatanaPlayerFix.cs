@@ -1,4 +1,5 @@
 using Katana.Characters;
+using Katana.Combat;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -43,8 +44,20 @@ namespace Katana.Editor
             if (player.GetComponent<PlayerController>() == null)
                 player.AddComponent<PlayerController>();
 
+            if (player.GetComponent<CharacterFacing>() == null)
+                player.AddComponent<CharacterFacing>();
+
+            if (player.GetComponent<PlayerCombat>() == null)
+                player.AddComponent<PlayerCombat>();
+
+            if (player.GetComponent<PlayerInventory>() == null)
+                player.AddComponent<PlayerInventory>();
+
+            if (player.GetComponent<FacingMarker>() == null)
+                player.AddComponent<FacingMarker>();
+
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-            Debug.Log("Katana: PlayerController simple (Input classique). Reglez Input Handling sur BOTH. Ctrl+S puis Play.");
+            Debug.Log("Katana: Player mis a jour (mouvement, combat, orientation, loot). Ctrl+S puis Play.");
         }
 
         static void CleanupManagers()
