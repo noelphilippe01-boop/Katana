@@ -2,6 +2,7 @@ using UnityEngine;
 
 namespace Katana.Core
 {
+    [DefaultExecutionOrder(-250)]
     public class SceneLandmarks : MonoBehaviour
     {
         [SerializeField] int gridSpacing = 5;
@@ -11,10 +12,31 @@ namespace Katana.Core
 
         void Awake()
         {
+            EnsureSpawnPlatform();
+            RemoveLegacySpawnPillar();
+
             if (GameObject.Find("ReferenceMarkers") != null)
                 return;
 
             CreateLandmarks();
+        }
+
+        void EnsureSpawnPlatform() => SpawnSafeZone.CreateAt(Vector3.zero, null);
+
+        void RemoveLegacySpawnPillar()
+        {
+            var markers = GameObject.Find("ReferenceMarkers");
+            if (markers == null)
+                return;
+
+            foreach (Transform child in markers.transform)
+            {
+                if (child.name != "Marker_0_0")
+                    continue;
+
+                if (Vector3.Distance(child.position, new Vector3(0f, 1.5f, 0f)) < 0.25f)
+                    Destroy(child.gameObject);
+            }
         }
 
         void CreateLandmarks()
@@ -41,8 +63,6 @@ namespace Katana.Core
             CreatePillar(root.transform, new Vector3(45f, 1f, -45f), 1.2f, 2f, new Color(0.85f, 0.75f, 0.2f));
             CreatePillar(root.transform, new Vector3(-45f, 1f, 45f), 1.2f, 2f, new Color(0.3f, 0.75f, 0.85f));
             CreatePillar(root.transform, new Vector3(45f, 1f, 45f), 1.2f, 2f, new Color(0.75f, 0.3f, 0.75f));
-
-            CreatePillar(root.transform, new Vector3(0f, 1.5f, 0f), 0.6f, 3f, new Color(0.95f, 0.2f, 0.2f));
         }
 
         static void CreatePillar(Transform parent, Vector3 position, float size, float height, Color color)

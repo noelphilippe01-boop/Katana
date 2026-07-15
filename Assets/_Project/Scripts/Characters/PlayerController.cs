@@ -1,4 +1,5 @@
 using Katana.CameraSystems;
+using Katana.Combat;
 using Katana.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -16,16 +17,30 @@ namespace Katana.Characters
 
         Camera cam;
         CharacterFacing facing;
+        PlayerStats stats;
         Vector3? destination;
+        GameObject pursueTarget;
         GameObject clickMarker;
         float bobPhase;
-        bool isMoving;
+
+        public bool IsMoving { get; private set; }
+
+        float CurrentMoveSpeed => stats != null ? stats.MoveSpeed : moveSpeed;
 
         void Awake()
         {
             cam = Camera.main;
             facing = GetComponent<CharacterFacing>();
+            stats = GetComponent<PlayerStats>();
             CreateClickMarker();
+        }
+
+        void OnEnable() => GameEventBus.TargetSelected += OnTargetSelected;
+        void OnDisable() => GameEventBus.TargetSelected -= OnTargetSelected;
+
+        void OnTargetSelected(GameObject target)
+        {
+            pursueTarget = target != null && target.CompareTag("Enemy") ? target : null;
         }
 
         void Update()
@@ -38,7 +53,10 @@ namespace Katana.Characters
             HandleMouseClick();
             MoveTowardDestination();
             ApplyMovementBobbing();
+            IsMoving = isMoving;
         }
+
+        bool isMoving;
 
         void HandleKeyboard()
         {
@@ -47,12 +65,16 @@ namespace Katana.Characters
                 return;
 
             destination = null;
+            pursueTarget = null;
             HideMarker();
-            GameEventBus.RaiseTargetSelected(null);
 
             var worldMove = ToWorldDirection(move.normalized);
-            transform.position += worldMove * (moveSpeed * Time.deltaTime);
-            facing.FaceDirection(worldMove);
+            transform.position += worldMove * (CurrentMoveSpeed * Time.deltaTime);
+
+            var combat = GetComponent<PlayerCombat>();
+            if (combat == null || !combat.IsTargetInRange())
+                facing.FaceDirection(worldMove);
+
             isMoving = true;
         }
 
@@ -102,13 +124,14 @@ namespace Katana.Characters
             if (hit.collider.CompareTag("Enemy"))
             {
                 var enemy = hit.collider.gameObject;
-                destination = enemy.transform.position;
+                pursueTarget = enemy;
+                destination = null;
                 ShowMarker(enemy.transform.position);
                 GameEventBus.RaiseTargetSelected(enemy);
                 return;
             }
 
-            GameEventBus.RaiseTargetSelected(null);
+            pursueTarget = null;
             destination = hit.point;
             ShowMarker(hit.point);
             GameEventBus.RaisePlayerMoveRequested(hit.point);
@@ -116,21 +139,55 @@ namespace Katana.Characters
 
         void MoveTowardDestination()
         {
+            if (pursueTarget != null && pursueTarget.activeInHierarchy)
+            {
+                MoveTowardPursueTarget();
+                return;
+            }
+
             if (!destination.HasValue)
                 return;
 
-            var flatTarget = new Vector3(destination.Value.x, transform.position.y, destination.Value.z);
+            MoveTowardPoint(destination.Value);
+        }
+
+        void MoveTowardPursueTarget()
+        {
+            var health = pursueTarget.GetComponent<EnemyHealth>();
+            if (health == null || !health.IsAlive)
+            {
+                pursueTarget = null;
+                return;
+            }
+
+            var attackRange = stats != null ? stats.AttackRange : 1.8f;
+            var enemyPos = pursueTarget.transform.position;
+            var toEnemy = enemyPos - transform.position;
+            toEnemy.y = 0f;
+            var distance = toEnemy.magnitude;
+
+            if (distance <= attackRange)
+            {
+                if (toEnemy.sqrMagnitude > 0.01f)
+                    facing.FaceDirection(toEnemy);
+                return;
+            }
+
+            var stopPoint = enemyPos - toEnemy.normalized * (attackRange * 0.92f);
+            stopPoint.y = transform.position.y;
+            MoveTowardPoint(stopPoint);
+        }
+
+        void MoveTowardPoint(Vector3 flatTarget)
+        {
+            flatTarget.y = transform.position.y;
             var direction = flatTarget - transform.position;
             direction.y = 0f;
 
             if (direction.sqrMagnitude <= stoppingDistance * stoppingDistance)
-            {
-                destination = null;
-                HideMarker();
                 return;
-            }
 
-            var step = direction.normalized * (moveSpeed * Time.deltaTime);
+            var step = direction.normalized * (CurrentMoveSpeed * Time.deltaTime);
             transform.position += step;
             facing.FaceDirection(direction);
             isMoving = true;
@@ -148,6 +205,9 @@ namespace Katana.Characters
 
         void Start()
         {
+            if (SpawnSafeZone.TryGet(out var zone))
+                groundHeight = zone.PlayerGroundHeight;
+
             CameraFollowTarget.EnsureOn(transform, groundHeight);
         }
 

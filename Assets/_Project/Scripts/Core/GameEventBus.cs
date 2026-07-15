@@ -10,6 +10,7 @@ namespace Katana.Core
         public static event Action<DamageInfo> DamageDealt;
         public static event Action<GameObject> EnemyKilled;
         public static event Action<ItemPickupEvent> ItemPickedUp;
+        public static event Action<WeaponProfile> WeaponChanged;
 
         public static void RaisePlayerMoveRequested(Vector3 destination) =>
             PlayerMoveRequested?.Invoke(destination);
@@ -25,6 +26,9 @@ namespace Katana.Core
 
         public static void RaiseItemPickedUp(ItemPickupEvent pickup) =>
             ItemPickedUp?.Invoke(pickup);
+
+        public static void RaiseWeaponChanged(WeaponProfile weapon) =>
+            WeaponChanged?.Invoke(weapon);
     }
 
     public struct DamageInfo
@@ -33,6 +37,7 @@ namespace Katana.Core
         public GameObject Target;
         public float Amount;
         public bool IsCritical;
+        public DamageType DamageType;
     }
 
     public struct ItemPickupEvent

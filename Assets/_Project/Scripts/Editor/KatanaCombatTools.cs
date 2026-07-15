@@ -1,5 +1,7 @@
+using Katana.CameraSystems;
 using Katana.Combat;
 using Katana.Characters;
+using Katana.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -12,14 +14,22 @@ namespace Katana.Editor
         [MenuItem("Katana/Setup Combat (current scene)")]
         public static void SetupCombatInScene()
         {
+            if (SceneManager.GetActiveScene().name == GameScenes.MainMenu)
+            {
+                Debug.LogWarning("Katana: Setup Combat ignore sur MainMenu. Ouvre GameWorld.unity.");
+                return;
+            }
+
             EnsureTags();
+            EnsureNavMeshBootstrap();
+            EnsureSpawnSafeZone();
             EnsurePlayerCombat();
-            EnsureCombatHud();
+            EnsureCombatSystems();
             EnsureEnemySpawner();
             UpgradeExistingEnemies();
             KatanaCameraTools.FixCameraInScene();
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-            Debug.Log("Katana: Combat avance pret (spawn, loot, barres PV, repere orientation).");
+            Debug.Log("Katana: Combat pret (3 armes: katana cleave, arc, baton mage).");
         }
 
         [MenuItem("Katana/Add Test Enemy")]
@@ -93,6 +103,12 @@ namespace Katana.Editor
             if (player.GetComponent<CharacterFacing>() == null)
                 player.AddComponent<CharacterFacing>();
 
+            if (player.GetComponent<WeaponLoadout>() == null)
+                player.AddComponent<WeaponLoadout>();
+
+            if (player.GetComponent<PlayerStats>() == null)
+                player.AddComponent<PlayerStats>();
+
             if (player.GetComponent<PlayerCombat>() == null)
                 player.AddComponent<PlayerCombat>();
 
@@ -101,9 +117,36 @@ namespace Katana.Editor
 
             if (player.GetComponent<FacingMarker>() == null)
                 player.AddComponent<FacingMarker>();
+
+            if (player.GetComponent<PlayerHealth>() == null)
+                player.AddComponent<PlayerHealth>();
+
+            if (player.GetComponent<AttackRangeIndicator>() == null)
+                player.AddComponent<AttackRangeIndicator>();
         }
 
-        static void EnsureCombatHud()
+        static void EnsureSpawnSafeZone()
+        {
+            if (Object.FindAnyObjectByType<SpawnSafeZone>() != null)
+                return;
+
+            SpawnSafeZone.CreateAt(Vector3.zero);
+        }
+
+        static void EnsureNavMeshBootstrap()
+        {
+            var managers = GameObject.Find("--- MANAGERS ---");
+            if (managers == null)
+            {
+                Debug.LogWarning("Katana: --- MANAGERS --- introuvable.");
+                return;
+            }
+
+            if (managers.GetComponent<NavMeshRuntimeBootstrap>() == null)
+                managers.AddComponent<NavMeshRuntimeBootstrap>();
+        }
+
+        static void EnsureCombatSystems()
         {
             var managers = GameObject.Find("--- MANAGERS ---");
             if (managers == null)
@@ -114,6 +157,18 @@ namespace Katana.Editor
 
             if (managers.GetComponent<CombatHud>() == null)
                 managers.AddComponent<CombatHud>();
+
+            if (managers.GetComponent<CombatStatsPanel>() == null)
+                managers.AddComponent<CombatStatsPanel>();
+
+            if (managers.GetComponent<EnemyAggroSystem>() == null)
+                managers.AddComponent<EnemyAggroSystem>();
+
+            if (managers.GetComponent<PauseMenuController>() == null)
+                managers.AddComponent<PauseMenuController>();
+
+            if (managers.GetComponent<DamageFloaterSystem>() == null)
+                managers.AddComponent<DamageFloaterSystem>();
         }
 
         static void EnsureEnemySpawner()
@@ -146,6 +201,19 @@ namespace Katana.Editor
 
                 if (enemy.GetComponent<FacingMarker>() == null)
                     enemy.AddComponent<FacingMarker>();
+
+                if (enemy.GetComponent<CharacterFacing>() == null)
+                    enemy.AddComponent<CharacterFacing>();
+
+                var ai = enemy.GetComponent<EnemyAI>() ?? enemy.AddComponent<EnemyAI>();
+                ai.Configure(8f);
+
+                if (enemy.GetComponent<UnityEngine.AI.NavMeshAgent>() == null)
+                {
+                    var agent = enemy.AddComponent<UnityEngine.AI.NavMeshAgent>();
+                    agent.height = 2f;
+                    agent.radius = 0.4f;
+                }
             }
         }
     }

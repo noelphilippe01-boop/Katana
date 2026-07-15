@@ -1,4 +1,6 @@
+using Katana.Characters;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace Katana.Combat
 {
@@ -6,7 +8,7 @@ namespace Katana.Combat
     {
         static Material enemyMaterial;
 
-        public static GameObject Create(Vector3 position, string enemyName = null)
+        public static GameObject Create(Vector3 position, string enemyName = null, float aggroRange = 8f)
         {
             var enemy = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             enemy.name = string.IsNullOrWhiteSpace(enemyName) ? "Enemy_Dummy" : enemyName;
@@ -21,7 +23,18 @@ namespace Katana.Combat
                 renderer.material = enemyMaterial;
             }
 
+            var agent = enemy.AddComponent<NavMeshAgent>();
+            agent.height = 2f;
+            agent.radius = 0.4f;
+            agent.baseOffset = 0f;
+
+            if (UnityEngine.AI.NavMesh.SamplePosition(enemy.transform.position, out var hit, 8f, UnityEngine.AI.NavMesh.AllAreas))
+                agent.Warp(hit.position);
+
+            enemy.AddComponent<CharacterFacing>();
             enemy.AddComponent<EnemyHealth>();
+            var ai = enemy.AddComponent<EnemyAI>();
+            ai.Configure(aggroRange);
             enemy.AddComponent<TargetHighlight>();
             enemy.AddComponent<WorldHealthBar>();
             enemy.AddComponent<LootDropper>();

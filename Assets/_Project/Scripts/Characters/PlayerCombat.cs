@@ -6,78 +6,190 @@ namespace Katana.Characters
 {
     [RequireComponent(typeof(PlayerController))]
     [RequireComponent(typeof(CharacterFacing))]
+    [RequireComponent(typeof(PlayerStats))]
     public class PlayerCombat : MonoBehaviour, ICombatant
     {
-        [SerializeField] float attackRange = 1.8f;
-        [SerializeField] float attackDamage = 10f;
-        [SerializeField] float attacksPerSecond = 1.5f;
-
-        GameObject selectedTarget;
+        GameObject combatTarget;
         float attackCooldown;
         CharacterFacing facing;
+        PlayerController movement;
+        PlayerStats stats;
+        PlayerHealth playerHealth;
 
-        public GameObject SelectedTarget => selectedTarget;
+        public GameObject SelectedTarget => combatTarget;
+        public bool IsCombatEngaged => combatTarget != null;
+        public float AttackRange => stats != null ? stats.AttackRange : 1.8f;
+        public float EffectRadius => stats != null ? stats.EffectRadius : 0f;
+        public WeaponAttackStyle AttackStyle => stats != null ? stats.AttackStyle : WeaponAttackStyle.MeleeCleave;
 
-        void Awake() => facing = GetComponent<CharacterFacing>();
+        void Awake()
+        {
+            facing = GetComponent<CharacterFacing>();
+            movement = GetComponent<PlayerController>();
+            stats = GetComponent<PlayerStats>();
+            playerHealth = GetComponent<PlayerHealth>();
+        }
 
-        void OnEnable() => GameEventBus.TargetSelected += OnTargetSelected;
-        void OnDisable() => GameEventBus.TargetSelected -= OnTargetSelected;
+        void OnEnable()
+        {
+            GameEventBus.TargetSelected += OnTargetSelected;
+            GameEventBus.EnemyKilled += OnEnemyKilled;
+        }
 
-        void OnTargetSelected(GameObject target) => selectedTarget = target;
+        void OnDisable()
+        {
+            GameEventBus.TargetSelected -= OnTargetSelected;
+            GameEventBus.EnemyKilled -= OnEnemyKilled;
+        }
+
+        void OnTargetSelected(GameObject target)
+        {
+            if (target != null && target.CompareTag("Enemy"))
+                EngageTarget(target);
+        }
+
+        void OnEnemyKilled(GameObject enemy)
+        {
+            if (combatTarget == enemy)
+                combatTarget = null;
+        }
+
+        public void EngageTarget(GameObject target)
+        {
+            if (target == null || !target.CompareTag("Enemy"))
+                return;
+
+            combatTarget = target;
+        }
+
+        public void ClearCombatTarget() => combatTarget = null;
+
+        public bool IsTargetInRange()
+        {
+            if (combatTarget == null)
+                return false;
+
+            return FlatDistance(transform.position, combatTarget.transform.position) <= AttackRange;
+        }
 
         void Update()
         {
-            if (selectedTarget == null)
+            if (combatTarget == null)
                 return;
 
-            var health = selectedTarget.GetComponent<EnemyHealth>();
+            var health = combatTarget.GetComponent<EnemyHealth>();
             if (health == null || !health.IsAlive)
-            {
-                selectedTarget = null;
-                return;
-            }
+                combatTarget = null;
+        }
 
-            var toTarget = selectedTarget.transform.position - transform.position;
+        void LateUpdate()
+        {
+            if (combatTarget == null || stats == null)
+                return;
+
+            var health = combatTarget.GetComponent<EnemyHealth>();
+            if (health == null || !health.IsAlive)
+                return;
+
+            if (movement != null && movement.IsMoving)
+                return;
+
+            if (!IsTargetInRange())
+                return;
+
+            var toTarget = combatTarget.transform.position - transform.position;
             toTarget.y = 0f;
             if (toTarget.sqrMagnitude > 0.01f)
                 facing.FaceDirection(toTarget);
-
-            if (FlatDistance(transform.position, selectedTarget.transform.position) > attackRange)
-                return;
 
             attackCooldown -= Time.deltaTime;
             if (attackCooldown > 0f)
                 return;
 
-            attackCooldown = 1f / attacksPerSecond;
-            health.ApplyDamage(new DamageInfo
+            attackCooldown = 1f / stats.AttacksPerSecond;
+            PerformAttack(health);
+        }
+
+        void PerformAttack(EnemyHealth primaryTarget)
+        {
+            switch (stats.AttackStyle)
             {
-                Source = gameObject,
-                Target = selectedTarget,
-                Amount = attackDamage,
-                IsCritical = false
+                case WeaponAttackStyle.MeleeCleave:
+                    PerformCleaveAttack();
+                    break;
+                case WeaponAttackStyle.RangedSingle:
+                    ApplyDamageToEnemy(primaryTarget);
+                    break;
+                case WeaponAttackStyle.RangedArea:
+                    PerformAreaAttack(primaryTarget.transform.position);
+                    break;
+            }
+        }
+
+        void PerformCleaveAttack()
+        {
+            var cleaveRadius = Mathf.Max(stats.EffectRadius, stats.AttackRange);
+            var playerPos = transform.position;
+
+            CombatTargetQuery.ForEachAliveEnemy(health =>
+            {
+                if (!CombatTargetQuery.IsWithinFlatRadius(playerPos, health.transform.position, cleaveRadius))
+                    return;
+
+                ApplyDamageToEnemy(health);
             });
+        }
+
+        void PerformAreaAttack(Vector3 center)
+        {
+            var radius = stats.EffectRadius;
+            if (radius <= 0f)
+            {
+                var primary = combatTarget?.GetComponent<EnemyHealth>();
+                if (primary != null && primary.IsAlive)
+                    ApplyDamageToEnemy(primary);
+                return;
+            }
+
+            CombatTargetQuery.ForEachAliveEnemy(health =>
+            {
+                if (!CombatTargetQuery.IsWithinFlatRadius(center, health.transform.position, radius))
+                    return;
+
+                ApplyDamageToEnemy(health);
+            });
+        }
+
+        void ApplyDamageToEnemy(EnemyHealth health)
+        {
+            var damage = CombatDamageCalculator.RollAttack(
+                gameObject,
+                health.gameObject,
+                stats.AttackDamage,
+                stats.CriticalChance,
+                stats.CriticalMultiplier,
+                stats.DamageType);
+
+            health.ApplyDamage(damage);
+
+            var heal = stats.ApplyLifeSteal(damage.Amount);
+            if (heal > 0f)
+                playerHealth?.Heal(heal);
         }
 
         public void RequestAttack()
         {
-            if (selectedTarget == null)
+            if (combatTarget == null || stats == null)
                 return;
 
-            var health = selectedTarget.GetComponent<EnemyHealth>();
-            if (health == null || !health.IsAlive)
+            var health = combatTarget.GetComponent<EnemyHealth>();
+            if (health == null || !health.IsAlive || !IsTargetInRange())
                 return;
 
-            if (FlatDistance(transform.position, selectedTarget.transform.position) > attackRange)
+            if (movement != null && movement.IsMoving)
                 return;
 
-            health.ApplyDamage(new DamageInfo
-            {
-                Source = gameObject,
-                Target = selectedTarget,
-                Amount = attackDamage,
-                IsCritical = false
-            });
+            PerformAttack(health);
         }
 
         public void RequestAbility(int slotIndex) { }

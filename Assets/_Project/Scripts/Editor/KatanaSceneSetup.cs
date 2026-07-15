@@ -25,6 +25,7 @@ namespace Katana.Editor
 
             CreateLighting();
             var ground = CreateGround();
+            SpawnSafeZone.CreateAt(Vector3.zero);
             var player = CreatePlayer();
             var cameraRig = CreateCameraRig(player.transform);
             StyleMainCamera();
@@ -34,8 +35,9 @@ namespace Katana.Editor
             EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), ScenePath);
             BakeNavMesh(ground);
             AddSceneToBuildSettings(ScenePath);
+            KatanaMenuTools.ConfigureBuildSettingsMenuItem();
 
-            Debug.Log("Katana: GameWorld ready. Clic sol = deplacer, clic ennemi = attaquer, ZQSD = deplacer.");
+            Debug.Log("Katana: GameWorld ready. Utilise Katana/Setup MainMenu Scene pour le menu de demarrage.");
         }
 
         static void AddSceneToBuildSettings(string scenePath)
@@ -88,14 +90,18 @@ namespace Katana.Editor
             var player = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             player.name = "Player";
             player.tag = "Player";
-            player.transform.position = new Vector3(0f, 1f, 0f);
+            player.transform.position = new Vector3(0f, 1.35f, 0f);
 
             Object.DestroyImmediate(player.GetComponent<CapsuleCollider>());
 
             player.AddComponent<CharacterFacing>();
+            player.AddComponent<WeaponLoadout>();
+            player.AddComponent<PlayerStats>();
             player.AddComponent<PlayerController>();
             player.AddComponent<PlayerCombat>();
             player.AddComponent<PlayerInventory>();
+            player.AddComponent<PlayerHealth>();
+            player.AddComponent<AttackRangeIndicator>();
             player.AddComponent<FacingMarker>();
             CameraFollowTarget.EnsureOn(player.transform);
             KatanaMaterials.ApplyToRenderer(player, KatanaMaterials.GetOrCreatePlayerMaterial());
@@ -150,9 +156,14 @@ namespace Katana.Editor
         {
             var managers = new GameObject("--- MANAGERS ---");
             managers.AddComponent<GameBootstrapper>();
+            managers.AddComponent<NavMeshRuntimeBootstrap>();
             managers.AddComponent<SceneVisualBootstrap>();
             managers.AddComponent<SceneLandmarks>();
             managers.AddComponent<CombatHud>();
+            managers.AddComponent<CombatStatsPanel>();
+            managers.AddComponent<EnemyAggroSystem>();
+            managers.AddComponent<PauseMenuController>();
+            managers.AddComponent<DamageFloaterSystem>();
             managers.AddComponent<EnemySpawner>();
 
             var cameraController = managers.AddComponent<IsometricCameraController>();

@@ -41,7 +41,7 @@ namespace Katana.Combat
                 return;
 
             currentHealth = Mathf.Max(0f, currentHealth - damage.Amount);
-            FlashHit();
+            FlashHit(damage);
 
             var info = damage;
             info.Target = gameObject;
@@ -55,12 +55,14 @@ namespace Katana.Combat
             }
         }
 
-        void FlashHit()
+        void FlashHit(DamageInfo damage)
         {
             if (targetRenderer == null)
                 return;
 
-            targetRenderer.material.color = Color.white;
+            targetRenderer.material.color = damage.IsCritical
+                ? new Color(1f, 0.85f, 0.2f)
+                : Color.white;
             hitFlashTimer = hitFlashDuration;
         }
     }

@@ -1,28 +1,34 @@
 using System.Collections.Generic;
 using Katana.Core;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Katana.Combat
 {
+    [DefaultExecutionOrder(100)]
     public class EnemySpawner : MonoBehaviour
     {
         [SerializeField] int initialCount = 5;
         [SerializeField] float spawnRadius = 14f;
+        [SerializeField] float enemyAggroRange = 8f;
         [SerializeField] float respawnDelay = 4f;
         [SerializeField] int maxAlive = 8;
-        [SerializeField] float minSpawnDistanceFromPlayer = 4f;
+        [SerializeField] float minSpawnDistanceFromPlayer = 6f;
 
         readonly Queue<float> respawnQueue = new();
         Transform player;
+        bool initialSpawnDone;
 
         void Start()
         {
+            if (SceneManager.GetActiveScene().name != GameScenes.GameWorld)
+                return;
+
             var playerObject = GameObject.FindGameObjectWithTag("Player");
             if (playerObject != null)
                 player = playerObject.transform;
 
-            for (var i = 0; i < initialCount; i++)
-                SpawnEnemy();
+            NavMeshRuntimeBootstrap.EnsureReady(SpawnInitialWave);
         }
 
         void OnEnable() => GameEventBus.EnemyKilled += OnEnemyKilled;
@@ -30,6 +36,9 @@ namespace Katana.Combat
 
         void Update()
         {
+            if (!initialSpawnDone)
+                return;
+
             if (respawnQueue.Count == 0)
                 return;
 
@@ -39,8 +48,22 @@ namespace Katana.Combat
             if (CountAliveEnemies() >= maxAlive)
                 return;
 
+            if (!NavMeshRuntimeBootstrap.IsReady)
+                return;
+
             respawnQueue.Dequeue();
             SpawnEnemy();
+        }
+
+        void SpawnInitialWave()
+        {
+            if (initialSpawnDone)
+                return;
+
+            initialSpawnDone = true;
+
+            for (var i = 0; i < initialCount; i++)
+                SpawnEnemy();
         }
 
         void OnEnemyKilled(GameObject enemy)
@@ -53,8 +76,11 @@ namespace Katana.Combat
 
         void SpawnEnemy()
         {
+            if (!NavMeshRuntimeBootstrap.IsReady)
+                return;
+
             var position = FindSpawnPosition();
-            EnemyFactory.Create(position, $"Enemy_{CountAliveEnemies() + 1}");
+            EnemyFactory.Create(position, $"Enemy_{CountAliveEnemies() + 1}", enemyAggroRange);
         }
 
         Vector3 FindSpawnPosition()
@@ -70,11 +96,34 @@ namespace Katana.Combat
 
                 var flatPlayer = new Vector3(player.position.x, 0f, player.position.z);
                 var flatSpawn = new Vector3(position.x, 0f, position.z);
-                if (Vector3.Distance(flatPlayer, flatSpawn) >= minSpawnDistanceFromPlayer)
-                    return position;
+                if (Vector3.Distance(flatPlayer, flatSpawn) < minSpawnDistanceFromPlayer)
+                    continue;
+
+                if (SpawnSafeZone.TryGet(out var zone) && zone.Contains(position))
+                    continue;
+
+                return position;
             }
 
-            return new Vector3(Random.Range(-spawnRadius, spawnRadius), 1f, Random.Range(-spawnRadius, spawnRadius));
+            return FindFallbackSpawnPosition();
+        }
+
+        Vector3 FindFallbackSpawnPosition()
+        {
+            for (var attempt = 0; attempt < 16; attempt++)
+            {
+                var position = new Vector3(
+                    Random.Range(-spawnRadius, spawnRadius),
+                    1f,
+                    Random.Range(-spawnRadius, spawnRadius));
+
+                if (SpawnSafeZone.TryGet(out var zone) && zone.Contains(position))
+                    continue;
+
+                return position;
+            }
+
+            return new Vector3(spawnRadius, 1f, 0f);
         }
 
         static int CountAliveEnemies() => GameObject.FindGameObjectsWithTag("Enemy").Length;

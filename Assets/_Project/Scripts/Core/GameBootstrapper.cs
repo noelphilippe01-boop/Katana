@@ -8,6 +8,8 @@ namespace Katana.Core
 
         void Awake()
         {
+            Time.timeScale = 1f;
+
             if (FindAnyObjectByType<GameStateManager>() == null)
             {
                 GameStateManager manager;
@@ -20,6 +22,9 @@ namespace Katana.Core
             }
 
             FindAnyObjectByType<GameStateManager>()?.SetState(GameState.Playing);
+
+            if (GetComponent<PauseMenuController>() == null)
+                gameObject.AddComponent<PauseMenuController>();
         }
     }
 }

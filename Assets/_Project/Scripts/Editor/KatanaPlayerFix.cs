@@ -41,16 +41,39 @@ namespace Katana.Editor
             if (player.GetComponent<CharacterFacing>() == null)
                 player.AddComponent<CharacterFacing>();
 
+            if (player.GetComponent<WeaponLoadout>() == null)
+                player.AddComponent<WeaponLoadout>();
+
+            if (player.GetComponent<PlayerStats>() == null)
+                player.AddComponent<PlayerStats>();
+
             if (player.GetComponent<PlayerCombat>() == null)
                 player.AddComponent<PlayerCombat>();
 
             if (player.GetComponent<PlayerInventory>() == null)
                 player.AddComponent<PlayerInventory>();
 
+            if (player.GetComponent<PlayerHealth>() == null)
+                player.AddComponent<PlayerHealth>();
+
+            if (player.GetComponent<AttackRangeIndicator>() == null)
+                player.AddComponent<AttackRangeIndicator>();
+
             if (player.GetComponent<FacingMarker>() == null)
                 player.AddComponent<FacingMarker>();
 
             CameraFollowTarget.EnsureOn(player.transform);
+            EnsureCombatUi();
+        }
+
+        static void EnsureCombatUi()
+        {
+            var managers = GameObject.Find("--- MANAGERS ---");
+            if (managers == null)
+                return;
+
+            if (managers.GetComponent<CombatStatsPanel>() == null)
+                managers.AddComponent<CombatStatsPanel>();
         }
 
         static void RemoveLegacyPhysics(GameObject player)
