@@ -42,7 +42,7 @@ namespace Katana.Editor
             if (follow == null)
                 follow = cmCamera.gameObject.AddComponent<CinemachineFollow>();
 
-            follow.FollowOffset = new Vector3(10f, 15f, -10f).normalized * 20f;
+            follow.FollowOffset = new Vector3(10f, 15f, -10f).normalized * 40f;
             follow.TrackerSettings.BindingMode = BindingMode.WorldSpace;
             follow.TrackerSettings.PositionDamping = Vector3.zero;
 

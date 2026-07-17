@@ -51,7 +51,13 @@ namespace Katana.Characters
 
         public event Action<int, WeaponProfile> WeaponChanged;
 
-        void Update() => HandleWeaponSwitchInput();
+        void Update()
+        {
+            if (Time.timeScale <= 0f)
+                return;
+
+            HandleWeaponSwitchInput();
+        }
 
         void HandleWeaponSwitchInput()
         {

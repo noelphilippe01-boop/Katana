@@ -7,9 +7,11 @@ namespace Katana.Combat
     public class CombatHud : MonoBehaviour
     {
         PlayerCombat playerCombat;
-        PlayerInventory inventory;
         PlayerHealth playerHealth;
+        WeaponLoadout weaponLoadout;
         PauseMenuController pauseMenu;
+        InventoryMenuController inventoryMenu;
+        CombatHudView view;
 
         void Awake()
         {
@@ -17,54 +19,102 @@ namespace Katana.Combat
             if (pauseMenu == null)
                 pauseMenu = gameObject.AddComponent<PauseMenuController>();
 
+            inventoryMenu = GetComponent<InventoryMenuController>();
+            if (inventoryMenu == null)
+                inventoryMenu = gameObject.AddComponent<InventoryMenuController>();
+
+            BindPlayerReferences();
+            BuildUi();
+            SubscribeEvents();
+            RefreshAll();
+        }
+
+        void OnDestroy() => UnsubscribeEvents();
+
+        void Update()
+        {
+            if ((pauseMenu != null && pauseMenu.IsPaused) || (inventoryMenu != null && inventoryMenu.IsOpen))
+            {
+                view?.SetVisible(false);
+                return;
+            }
+
+            view?.SetVisible(true);
+            RefreshDynamicValues();
+        }
+
+        void BindPlayerReferences()
+        {
             var player = GameObject.FindGameObjectWithTag("Player");
             if (player == null)
                 return;
 
             playerCombat = player.GetComponent<PlayerCombat>();
-            inventory = player.GetComponent<PlayerInventory>();
             playerHealth = player.GetComponent<PlayerHealth>();
+            weaponLoadout = player.GetComponent<WeaponLoadout>();
         }
 
-        void OnGUI()
+        void BuildUi()
         {
-            if (pauseMenu != null && pauseMenu.IsPaused)
-                return;
+            KatanaUiFactory.EnsureEventSystem();
+            var canvas = KatanaUiFactory.CreateHudOverlayCanvas("CombatHudCanvas", 10);
+            view = CombatHudView.Create(canvas.transform);
+        }
 
-            var style = new GUIStyle(GUI.skin.label) { fontSize = 14 };
-            GUI.Label(new Rect(12f, 12f, 560f, 120f),
-                "Katana — Combat\nClic sol: deplacer | Clic pres ennemi (ecran): combattre | & e \": armes | Echap: pause",
-                style);
+        void SubscribeEvents()
+        {
+            if (weaponLoadout != null)
+                weaponLoadout.WeaponChanged += OnWeaponChanged;
+        }
 
+        void UnsubscribeEvents()
+        {
+            if (weaponLoadout != null)
+                weaponLoadout.WeaponChanged -= OnWeaponChanged;
+        }
+
+        void OnWeaponChanged(int index, WeaponProfile weapon) => view?.SetSelectedWeapon(index, weaponLoadout);
+
+        void RefreshAll()
+        {
+            RefreshDynamicValues();
+
+            if (weaponLoadout != null)
+                view?.SetWeapons(weaponLoadout);
+        }
+
+        void RefreshDynamicValues()
+        {
             if (playerHealth != null)
-                GUI.Label(new Rect(12f, 56f, 360f, 24f),
-                    $"PV: {playerHealth.CurrentHealth:0}/{playerHealth.MaxHealth:0}",
-                    style);
+                view?.SetPlayerHealth(playerHealth.CurrentHealth, playerHealth.MaxHealth);
 
-            if (inventory != null)
-                GUI.Label(new Rect(12f, 80f, 320f, 24f), $"Or: {inventory.Gold}", style);
+            RefreshTargetFrame();
+        }
 
-            if (playerCombat == null)
+        void RefreshTargetFrame()
+        {
+            if (view == null || playerCombat == null)
                 return;
 
             var target = playerCombat.SelectedTarget;
             if (target == null)
             {
-                GUI.Label(new Rect(12f, 108f, 360f, 24f), "Cible: aucune", style);
+                view.ClearTarget();
                 return;
             }
 
             var health = target.GetComponent<EnemyHealth>();
             if (health == null || !health.IsAlive)
             {
-                GUI.Label(new Rect(12f, 108f, 360f, 24f), "Cible: aucune", style);
+                view.ClearTarget();
                 return;
             }
 
-            var rangeLabel = playerCombat.IsTargetInRange() ? "a portee" : "hors portee";
-            GUI.Label(new Rect(12f, 108f, 420f, 24f),
-                $"Cible: {target.name}  PV: {health.CurrentHealth:0}/{health.MaxHealth:0}  ({rangeLabel})",
-                style);
+            view.SetTarget(
+                target.name,
+                health.CurrentHealth,
+                health.MaxHealth,
+                playerCombat.IsTargetInRange());
         }
     }
 }

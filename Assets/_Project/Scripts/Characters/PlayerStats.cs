@@ -9,12 +9,16 @@ namespace Katana.Characters
         [SerializeField] float baseDefense = 5f;
         [SerializeField] float baseMaxHealth = 100f;
         [SerializeField] float baseMoveSpeed = 6f;
+        [SerializeField] float healthRegenerationPerSecond = DefaultHealthRegenerationPerSecond;
+
+        public const float DefaultHealthRegenerationPerSecond = 0.1f;
 
         WeaponLoadout loadout;
 
         public float BaseDefense => baseDefense;
         public float BaseMaxHealth => baseMaxHealth;
         public float BaseMoveSpeed => baseMoveSpeed;
+        public float HealthRegenerationPerSecond => healthRegenerationPerSecond;
 
         public WeaponAttackStyle AttackStyle => loadout.Current.AttackStyle;
         public float AttackDamage => loadout.Current.AttackDamage;
@@ -31,7 +35,17 @@ namespace Katana.Characters
         public WeaponProfile CurrentWeapon => loadout.Current;
         public WeaponLoadout Loadout => loadout;
 
-        void Awake() => loadout = GetComponent<WeaponLoadout>();
+        void Awake()
+        {
+            loadout = GetComponent<WeaponLoadout>();
+            EnsureDefaultRegeneration();
+        }
+
+        void EnsureDefaultRegeneration()
+        {
+            if (healthRegenerationPerSecond <= 0f)
+                healthRegenerationPerSecond = DefaultHealthRegenerationPerSecond;
+        }
 
         public float MitigateIncomingDamage(float rawDamage) =>
             Mathf.Max(1f, rawDamage * (100f / (100f + Defense)));

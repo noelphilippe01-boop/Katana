@@ -3,7 +3,8 @@
     "rootNamespace": "Katana.Core",
     "references": [
         "Unity.AI.Navigation",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.UGUI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

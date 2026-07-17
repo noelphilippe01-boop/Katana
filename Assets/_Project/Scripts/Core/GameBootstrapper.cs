@@ -8,6 +8,7 @@ namespace Katana.Core
 
         void Awake()
         {
+            SplitScreenMenuLayout.ForceReset();
             Time.timeScale = 1f;
 
             if (FindAnyObjectByType<GameStateManager>() == null)

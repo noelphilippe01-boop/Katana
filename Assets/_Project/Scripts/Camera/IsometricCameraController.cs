@@ -13,10 +13,10 @@ namespace Katana.CameraSystems
         [SerializeField] float pitchAtMinZoom = 33f;
         [SerializeField] float pitchAtMaxZoom = 55f;
         [SerializeField] float yaw = -35f;
-        [SerializeField] float zoomDistance = 20f;
-        [SerializeField] float minZoom = 11f;
-        [SerializeField] float maxZoom = 34f;
-        [SerializeField] float zoomStep = 1.4f;
+        [SerializeField] float zoomDistance = 40f;
+        [SerializeField] float minZoom = 22f;
+        [SerializeField] float maxZoom = 68f;
+        [SerializeField] float zoomStep = 2.8f;
         [SerializeField] float zoomSmoothing = 8f;
 
         CinemachineFollow follow;

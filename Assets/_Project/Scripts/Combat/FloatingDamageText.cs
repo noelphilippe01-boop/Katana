@@ -1,5 +1,6 @@
 using Katana.Core;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Katana.Combat
 {
@@ -8,10 +9,10 @@ namespace Katana.Combat
         [SerializeField] float lifetime = 0.85f;
         [SerializeField] float riseSpeed = 1.4f;
 
-        string label;
+        Text labelText;
         Color color;
-        int fontSize;
         float spawnTime;
+        Camera cam;
 
         public static void Spawn(Vector3 worldPosition, DamageInfo damage)
         {
@@ -19,10 +20,11 @@ namespace Katana.Combat
             floater.transform.position = worldPosition + Vector3.up * 1.3f;
 
             var text = floater.AddComponent<FloatingDamageText>();
-            text.label = damage.IsCritical ? $"{damage.Amount:0}!" : $"{damage.Amount:0}";
-            text.fontSize = damage.IsCritical ? 20 : 15;
             text.color = ColorFor(damage);
             text.spawnTime = Time.time;
+            text.Build(
+                damage.IsCritical ? $"{damage.Amount:0}!" : $"{damage.Amount:0}",
+                damage.IsCritical ? 20 : 15);
         }
 
         static Color ColorFor(DamageInfo damage)
@@ -39,33 +41,37 @@ namespace Katana.Combat
             };
         }
 
+        void Build(string label, int fontSize)
+        {
+            cam = Camera.main;
+
+            var canvasGo = new GameObject("Canvas");
+            canvasGo.transform.SetParent(transform);
+            canvasGo.transform.localPosition = Vector3.zero;
+
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+
+            var rect = canvasGo.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(120f, 40f);
+            rect.localScale = Vector3.one * 0.012f;
+
+            labelText = KatanaUiFactory.CreateText(canvasGo.transform, "Value", label, fontSize, TextAnchor.MiddleCenter, FontStyle.Bold);
+            labelText.color = color;
+        }
+
         void Update()
         {
             transform.position += Vector3.up * (riseSpeed * Time.deltaTime);
+
+            if (cam == null)
+                cam = Camera.main;
+
+            if (cam != null)
+                transform.rotation = Quaternion.LookRotation(transform.position - cam.transform.position);
+
             if (Time.time - spawnTime >= lifetime)
                 Destroy(gameObject);
-        }
-
-        void OnGUI()
-        {
-            var camera = Camera.main;
-            if (camera == null)
-                return;
-
-            var screen = camera.WorldToScreenPoint(transform.position);
-            if (screen.z < 0f)
-                return;
-
-            var style = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = fontSize,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = color }
-            };
-
-            var rect = new Rect(screen.x - 40f, Screen.height - screen.y - 12f, 80f, 24f);
-            GUI.Label(rect, label, style);
         }
     }
 }

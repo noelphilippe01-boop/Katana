@@ -28,6 +28,13 @@ ARPG isométrique Unity — fondations modulaires, solo d'abord, architecture pr
 | Cursor | Scripts C# et architecture |
 | VS Code | Commandes Git / terminal |
 
+## Documentation
+
+- [UNITY_SETUP.md](Docs/UNITY_SETUP.md) — installation et packages
+- [SCENE_SETUP.md](Docs/SCENE_SETUP.md) — scènes et outils éditeur
+- [GameRoadmap.md](Docs/GameRoadmap.md) — phases de développement solo
+- [NetworkingRoadmap.md](Docs/NetworkingRoadmap.md) — coop en ligne (futur)
+
 ## Structure cible
 
 ```

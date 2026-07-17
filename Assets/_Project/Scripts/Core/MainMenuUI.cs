@@ -5,81 +5,65 @@ namespace Katana.Core
 {
     public class MainMenuUI : MonoBehaviour
     {
-        enum MenuScreen
-        {
-            Main,
-            Settings
-        }
+        const float ButtonWidth = 300f;
+        const float ButtonHeight = 52f;
 
-        MenuScreen screen = MenuScreen.Main;
-        SettingsMenuDrawer.Category settingsCategory = SettingsMenuDrawer.Category.Audio;
+        GameObject mainPanel;
+        GameObject settingsPanel;
+
+        void Awake()
+        {
+            KatanaUiFactory.EnsureEventSystem();
+            BuildUi();
+        }
 
         void Start() => GameSettings.ApplyAudio();
 
-        void OnGUI()
+        void BuildUi()
         {
-            DrawBackdrop();
+            var canvas = KatanaUiFactory.CreateMenuOverlayCanvas("MainMenuCanvas");
+            KatanaUiFactory.CreateFullScreenPanel(canvas.transform, "Backdrop", KatanaUiTheme.MenuBackdrop);
 
-            switch (screen)
-            {
-                case MenuScreen.Main:
-                    DrawMainScreen();
-                    break;
-                case MenuScreen.Settings:
-                    DrawSettingsScreen();
-                    break;
-            }
+            mainPanel = new GameObject("MainPanel");
+            mainPanel.transform.SetParent(canvas.transform, false);
+            StretchFull(mainPanel.AddComponent<RectTransform>());
+            KatanaUiFactory.CreateFullScreenPanel(mainPanel.transform, "MainPanelBg", Color.clear);
+
+            var titlePlate = KatanaUiVisuals.CreateTitlePlate(mainPanel.transform, "KATANA", "ARPG isometrique");
+            titlePlate.anchorMin = titlePlate.anchorMax = new Vector2(0.5f, 0.5f);
+            titlePlate.pivot = new Vector2(0.5f, 0.5f);
+            titlePlate.anchoredPosition = new Vector2(0f, 190f);
+
+            KatanaUiFactory.CreateButton(mainPanel.transform, "Demarrer", new Vector2(0f, 36f), new Vector2(ButtonWidth, ButtonHeight), StartGame);
+            KatanaUiFactory.CreateButton(mainPanel.transform, "Parametres", new Vector2(0f, -32f), new Vector2(ButtonWidth, ButtonHeight), ShowSettings);
+            KatanaUiFactory.CreateButton(mainPanel.transform, "Quitter", new Vector2(0f, -100f), new Vector2(ButtonWidth, ButtonHeight), QuitGame);
+
+            settingsPanel = new GameObject("SettingsPanelRoot");
+            settingsPanel.transform.SetParent(canvas.transform, false);
+            StretchFull(settingsPanel.AddComponent<RectTransform>());
+            SettingsPanelView.Create(settingsPanel.transform, ShowMain);
+            settingsPanel.SetActive(false);
         }
 
-        void DrawBackdrop()
+        static void StretchFull(RectTransform rect)
         {
-            GUI.Box(new Rect(0f, 0f, Screen.width, Screen.height), GUIContent.none);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
         }
 
-        void DrawMainScreen()
+        void ShowMain()
         {
-            var titleStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 42,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter
-            };
-
-            var subtitleStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 15,
-                alignment = TextAnchor.MiddleCenter
-            };
-
-            var centerX = Screen.width * 0.5f;
-            GUI.Label(new Rect(centerX - 220f, Screen.height * 0.18f, 440f, 60f), "KATANA", titleStyle);
-            GUI.Label(new Rect(centerX - 220f, Screen.height * 0.28f, 440f, 28f), "ARPG isometrique", subtitleStyle);
-
-            if (DrawMenuButton(centerX - 120f, Screen.height * 0.42f, 240f, 44f, "Demarrer"))
-                StartGame();
-
-            if (DrawMenuButton(centerX - 120f, Screen.height * 0.52f, 240f, 44f, "Parametres"))
-                screen = MenuScreen.Settings;
-
-            if (DrawMenuButton(centerX - 120f, Screen.height * 0.62f, 240f, 44f, "Quitter"))
-                QuitGame();
+            mainPanel.SetActive(true);
+            settingsPanel.SetActive(false);
         }
 
-        void DrawSettingsScreen()
+        void ShowSettings()
         {
-            var centerX = Screen.width * 0.5f;
-            var panelX = centerX - 180f;
-            var panelY = Screen.height * 0.22f;
-
-            SettingsMenuDrawer.Draw(ref settingsCategory, panelX, panelY);
-
-            if (DrawMenuButton(panelX + 60f, panelY + 248f, 240f, 40f, "Retour"))
-                screen = MenuScreen.Main;
-        }
-
-        static bool DrawMenuButton(float x, float y, float width, float height, string label)
-        {
-            return GUI.Button(new Rect(x, y, width, height), label);
+            mainPanel.SetActive(false);
+            settingsPanel.SetActive(true);
+            settingsPanel.GetComponentInChildren<SettingsPanelView>()?.RefreshValues();
         }
 
         static void StartGame()

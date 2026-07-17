@@ -28,6 +28,22 @@ namespace Katana.Characters
                 SetRespawnPoint(zone.PlayerSpawnPosition);
         }
 
+        void Update()
+        {
+            RegenerateHealth();
+        }
+
+        void RegenerateHealth()
+        {
+            if (!IsAlive || stats == null || stats.HealthRegenerationPerSecond <= 0f)
+                return;
+
+            if (currentHealth >= MaxHealth)
+                return;
+
+            Heal(stats.HealthRegenerationPerSecond * Time.deltaTime);
+        }
+
         public void SetRespawnPoint(Vector3 position) => respawnPosition = position;
 
         public void ApplyDamage(DamageInfo damage)
