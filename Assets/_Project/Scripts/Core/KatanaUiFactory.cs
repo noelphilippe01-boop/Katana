@@ -224,7 +224,10 @@ namespace Katana.Core
             var background = new GameObject("Background");
             background.transform.SetParent(row.transform, false);
             var bgImage = background.AddComponent<Image>();
-            bgImage.color = KatanaUiTheme.HudHealthBackground;
+            KatanaUiSprites.TryApplySliced(
+                bgImage,
+                KatanaUiSprites.SpriteId.HealthBarBackground,
+                KatanaUiTheme.HudHealthBackground);
             bgImage.raycastTarget = false;
             StretchFull(background.GetComponent<RectTransform>());
 
@@ -248,7 +251,7 @@ namespace Katana.Core
                 return;
 
             ratio = Mathf.Clamp01(ratio);
-            const float pad = 2f;
+            var pad = KatanaUiSprites.ContentInset(KatanaUiSprites.SpriteId.HealthBarBackground);
             fillRect.anchorMin = Vector2.zero;
             fillRect.anchorMax = new Vector2(ratio, 1f);
             fillRect.offsetMin = new Vector2(pad, pad);

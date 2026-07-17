@@ -35,16 +35,36 @@ namespace Katana.Core
     {
         public static RectTransform CreateWindowPanel(Transform parent, string name, Vector2 size)
         {
-            var root = CreateBorderedPanel(parent, name, size, KatanaUiTheme.WindowBorder, KatanaUiTheme.PanelFill);
-            CreateTopShine(root);
-            CreateAccentStrip(root, KatanaUiTheme.AccentPrimary, 5f);
+            var root = CreateBorderedPanel(
+                parent,
+                name,
+                size,
+                KatanaUiTheme.WindowBorder,
+                KatanaUiTheme.PanelFill,
+                KatanaUiSprites.SpriteId.WindowFrame);
+
+            if (KatanaUiSprites.Get(KatanaUiSprites.SpriteId.WindowFrame) == null)
+            {
+                CreateTopShine(root);
+                CreateAccentStrip(root, KatanaUiTheme.AccentPrimary, 5f);
+            }
+
             return root;
         }
 
         public static RectTransform CreateHudFrame(Transform parent, string name, Vector2 size)
         {
-            var root = CreateBorderedPanel(parent, name, size, KatanaUiTheme.HudBorderColor, KatanaUiTheme.HudFrameColor);
-            CreateAccentStrip(root, KatanaUiTheme.AccentPrimary, 4f);
+            var root = CreateBorderedPanel(
+                parent,
+                name,
+                size,
+                KatanaUiTheme.HudBorderColor,
+                KatanaUiTheme.HudFrameColor,
+                KatanaUiSprites.SpriteId.HudFrame);
+
+            if (KatanaUiSprites.Get(KatanaUiSprites.SpriteId.HudFrame) == null)
+                CreateAccentStrip(root, KatanaUiTheme.AccentPrimary, 4f);
+
             return root;
         }
 
@@ -201,7 +221,14 @@ namespace Katana.Core
             slotRoot.transform.SetParent(parent, false);
 
             var background = slotRoot.AddComponent<Image>();
-            background.color = KatanaUiTheme.InventoryCellFill;
+            if (KatanaUiSprites.Get(KatanaUiSprites.SpriteId.GridFrame) != null)
+            {
+                background.color = new Color(1f, 1f, 1f, 0.04f);
+            }
+            else
+            {
+                background.color = KatanaUiTheme.InventoryCellFill;
+            }
             background.raycastTarget = false;
 
             var rect = slotRoot.GetComponent<RectTransform>();
@@ -223,24 +250,45 @@ namespace Katana.Core
             frameRect.sizeDelta = new Vector2(frameWidth, frameHeight);
 
             var frameImage = frame.AddComponent<Image>();
-            frameImage.color = KatanaUiTheme.InventoryGridFrame;
+            KatanaUiSprites.TryApplySliced(frameImage, KatanaUiSprites.SpriteId.GridFrame, KatanaUiTheme.InventoryGridFrame);
             frameImage.raycastTarget = false;
 
             var inner = new GameObject("InventoryGridInner");
             inner.transform.SetParent(frame.transform, false);
             var innerImage = inner.AddComponent<Image>();
-            innerImage.color = KatanaUiTheme.InventoryGridInner;
+            if (KatanaUiSprites.Get(KatanaUiSprites.SpriteId.GridFrame) != null)
+            {
+                innerImage.color = Color.clear;
+            }
+            else
+            {
+                innerImage.color = KatanaUiTheme.InventoryGridInner;
+            }
+
             innerImage.raycastTarget = false;
-            StretchInset(inner.GetComponent<RectTransform>(), padding);
+            var gridInset = KatanaUiSprites.Get(KatanaUiSprites.SpriteId.GridFrame) != null
+                ? KatanaUiSprites.ContentInset(KatanaUiSprites.SpriteId.GridFrame)
+                : padding;
+            StretchInset(inner.GetComponent<RectTransform>(), gridInset);
 
             return frameRect;
         }
 
         public static RectTransform CreateTitlePlate(Transform parent, string title, string subtitle)
         {
-            var plate = CreateBorderedPanel(parent, "TitlePlate", new Vector2(560f, 150f), KatanaUiTheme.WindowBorder, KatanaUiTheme.PanelFillRaised);
-            CreateTopShine(plate);
-            CreateAccentStrip(plate, KatanaUiTheme.AccentPrimary, 5f);
+            var plate = CreateBorderedPanel(
+                parent,
+                "TitlePlate",
+                new Vector2(560f, 150f),
+                KatanaUiTheme.WindowBorder,
+                KatanaUiTheme.PanelFillRaised,
+                KatanaUiSprites.SpriteId.WindowFrame);
+
+            if (KatanaUiSprites.Get(KatanaUiSprites.SpriteId.WindowFrame) == null)
+            {
+                CreateTopShine(plate);
+                CreateAccentStrip(plate, KatanaUiTheme.AccentPrimary, 5f);
+            }
 
             var titleLabel = KatanaUiFactory.CreateText(plate, "Title", title, 56, TextAnchor.UpperCenter, FontStyle.Bold);
             titleLabel.color = KatanaUiTheme.TextPrimary;
@@ -263,11 +311,28 @@ namespace Katana.Core
             Color borderColor,
             Color fillColor)
         {
+            return CreateBorderedPanel(
+                parent,
+                name,
+                size,
+                borderColor,
+                fillColor,
+                KatanaUiSprites.SpriteId.WindowFrame);
+        }
+
+        static RectTransform CreateBorderedPanel(
+            Transform parent,
+            string name,
+            Vector2 size,
+            Color borderColor,
+            Color fillColor,
+            KatanaUiSprites.SpriteId spriteId)
+        {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
 
             var border = go.AddComponent<Image>();
-            border.color = borderColor;
+            KatanaUiSprites.TryApplySliced(border, spriteId, borderColor);
 
             var rect = go.GetComponent<RectTransform>();
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -276,9 +341,9 @@ namespace Katana.Core
             var inner = new GameObject("Inner");
             inner.transform.SetParent(go.transform, false);
             var innerImage = inner.AddComponent<Image>();
-            innerImage.color = fillColor;
+            innerImage.color = KatanaUiSprites.Get(spriteId) != null ? Color.clear : fillColor;
             innerImage.raycastTarget = false;
-            StretchInset(inner.GetComponent<RectTransform>(), 2f);
+            StretchInset(inner.GetComponent<RectTransform>(), KatanaUiSprites.ContentInset(spriteId));
 
             return rect;
         }
