@@ -2,26 +2,29 @@ using Katana.CameraSystems;
 using Katana.Combat;
 using Katana.Core;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace Katana.Characters
 {
     [RequireComponent(typeof(CharacterFacing))]
     public class PlayerController : MonoBehaviour
     {
+        const float MinWalkableNormalY = 0.55f;
+
         [SerializeField] float moveSpeed = 6f;
         [SerializeField] float stoppingDistance = 0.35f;
         [SerializeField] float bobAmplitude = 0.035f;
         [SerializeField] float bobFrequency = 10f;
-        [SerializeField] float groundHeight = 1f;
+        [SerializeField] float openGroundHeight = 1f;
+        [SerializeField] float attackPickScreenRadius = 56f;
 
         Camera cam;
         CharacterFacing facing;
         PlayerStats stats;
-        Vector3? destination;
-        GameObject pursueTarget;
         GameObject clickMarker;
         float bobPhase;
+        bool isMoving;
+        Vector3? moveDestination;
+        float markerHeight = 0.05f;
 
         public bool IsMoving { get; private set; }
 
@@ -35,162 +38,130 @@ namespace Katana.Characters
             CreateClickMarker();
         }
 
-        void OnEnable() => GameEventBus.TargetSelected += OnTargetSelected;
-        void OnDisable() => GameEventBus.TargetSelected -= OnTargetSelected;
-
-        void OnTargetSelected(GameObject target)
-        {
-            pursueTarget = target != null && target.CompareTag("Enemy") ? target : null;
-        }
-
         void Update()
         {
             if (cam == null)
                 cam = Camera.main;
 
             isMoving = false;
-            HandleKeyboard();
-            HandleMouseClick();
-            MoveTowardDestination();
+            HandleMouseMovement();
+            MoveTowardStoredDestination();
             ApplyMovementBobbing();
             IsMoving = isMoving;
         }
 
-        bool isMoving;
-
-        void HandleKeyboard()
+        void HandleMouseMovement()
         {
-            var move = ReadKeyboardMove();
-            if (move.sqrMagnitude < 0.01f)
-                return;
-
-            destination = null;
-            pursueTarget = null;
-            HideMarker();
-
-            var worldMove = ToWorldDirection(move.normalized);
-            transform.position += worldMove * (CurrentMoveSpeed * Time.deltaTime);
-
-            var combat = GetComponent<PlayerCombat>();
-            if (combat == null || !combat.IsTargetInRange())
-                facing.FaceDirection(worldMove);
-
-            isMoving = true;
-        }
-
-        static Vector3 ReadKeyboardMove()
-        {
-            var move = Vector3.zero;
-            var keyboard = Keyboard.current;
-
-            if (keyboard != null)
-            {
-                if (IsLayoutKeyPressed(keyboard, "z", Key.W)) move.z += 1f;
-                if (IsLayoutKeyPressed(keyboard, "s", Key.S)) move.z -= 1f;
-                if (IsLayoutKeyPressed(keyboard, "q", Key.A)) move.x -= 1f;
-                if (IsLayoutKeyPressed(keyboard, "d", Key.D)) move.x += 1f;
-                return move;
-            }
-
-            if (Input.GetKey(KeyCode.W)) move.z += 1f;
-            if (Input.GetKey(KeyCode.S)) move.z -= 1f;
-            if (Input.GetKey(KeyCode.A)) move.x -= 1f;
-            if (Input.GetKey(KeyCode.D)) move.x += 1f;
-
-            return move;
-        }
-
-        static bool IsLayoutKeyPressed(Keyboard keyboard, string layoutKeyName, Key usPhysicalFallback)
-        {
-            var keyControl = keyboard.FindKeyOnCurrentKeyboardLayout(layoutKeyName);
-            if (keyControl == null)
-                return keyboard[usPhysicalFallback].isPressed;
-
-            return keyControl.isPressed;
-        }
-
-        void HandleMouseClick()
-        {
-            if (!Input.GetMouseButtonDown(0) || cam == null)
+            if (cam == null || !Input.GetMouseButton(0))
                 return;
 
             var ray = cam.ScreenPointToRay(Input.mousePosition);
-            if (!Physics.Raycast(ray, out var hit, 500f))
+            if (!TryResolveMovePoint(ray, out var targetPoint, out var enemyHit))
                 return;
 
-            if (hit.collider.transform == transform)
-                return;
-
-            if (hit.collider.CompareTag("Enemy"))
+            if (Input.GetMouseButtonDown(0))
             {
-                var enemy = hit.collider.gameObject;
-                pursueTarget = enemy;
-                destination = null;
-                ShowMarker(enemy.transform.position);
-                GameEventBus.RaiseTargetSelected(enemy);
-                return;
+                var attackTarget = enemyHit ?? CombatTargetQuery.FindNearestEnemyNearScreenPoint(
+                    cam,
+                    Input.mousePosition,
+                    attackPickScreenRadius);
+
+                if (attackTarget != null)
+                {
+                    GameEventBus.RaiseTargetSelected(attackTarget);
+                    targetPoint = FlattenToWalkHeight(attackTarget.transform.position);
+                }
+                else
+                    GetComponent<PlayerCombat>()?.DisengageCombat();
             }
 
-            pursueTarget = null;
-            destination = hit.point;
-            ShowMarker(hit.point);
-            GameEventBus.RaisePlayerMoveRequested(hit.point);
+            moveDestination = targetPoint;
+            ShowMarker(new Vector3(targetPoint.x, markerHeight, targetPoint.z));
         }
 
-        void MoveTowardDestination()
+        bool TryResolveMovePoint(Ray ray, out Vector3 point, out GameObject enemyHit)
         {
-            if (pursueTarget != null && pursueTarget.activeInHierarchy)
+            enemyHit = null;
+            var hits = Physics.RaycastAll(ray, 500f);
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+            foreach (var hit in hits)
             {
-                MoveTowardPursueTarget();
-                return;
+                if (IsSelf(hit.transform))
+                    continue;
+
+                if (Input.GetMouseButtonDown(0) && hit.collider.CompareTag("Enemy"))
+                    enemyHit = hit.collider.gameObject;
+
+                if (hit.normal.y < MinWalkableNormalY)
+                    continue;
+
+                point = FlattenToWalkHeight(hit.point);
+                return true;
             }
 
-            if (!destination.HasValue)
-                return;
+            var groundPlane = new Plane(Vector3.up, Vector3.zero);
+            if (!groundPlane.Raycast(ray, out var distance))
+            {
+                point = default;
+                return false;
+            }
 
-            MoveTowardPoint(destination.Value);
+            point = FlattenToWalkHeight(ray.GetPoint(distance));
+            return true;
         }
 
-        void MoveTowardPursueTarget()
+        Vector3 FlattenToWalkHeight(Vector3 worldPoint)
         {
-            var health = pursueTarget.GetComponent<EnemyHealth>();
-            if (health == null || !health.IsAlive)
-            {
-                pursueTarget = null;
-                return;
-            }
+            if (SpawnSafeZone.TryGet(out var zone) && zone.TrySnapToPlatformSurface(worldPoint, out var platformPoint))
+                return platformPoint;
 
-            var attackRange = stats != null ? stats.AttackRange : 1.8f;
-            var enemyPos = pursueTarget.transform.position;
-            var toEnemy = enemyPos - transform.position;
-            toEnemy.y = 0f;
-            var distance = toEnemy.magnitude;
-
-            if (distance <= attackRange)
-            {
-                if (toEnemy.sqrMagnitude > 0.01f)
-                    facing.FaceDirection(toEnemy);
-                return;
-            }
-
-            var stopPoint = enemyPos - toEnemy.normalized * (attackRange * 0.92f);
-            stopPoint.y = transform.position.y;
-            MoveTowardPoint(stopPoint);
+            worldPoint.y = openGroundHeight;
+            return worldPoint;
         }
 
-        void MoveTowardPoint(Vector3 flatTarget)
+        float ResolveGroundHeight(Vector3 position)
         {
-            flatTarget.y = transform.position.y;
+            if (SpawnSafeZone.TryGet(out var zone) && zone.IsOnPlatformFootprint(position))
+                return zone.PlayerGroundHeight;
+
+            return openGroundHeight;
+        }
+
+        void MoveTowardStoredDestination()
+        {
+            if (!moveDestination.HasValue)
+                return;
+
+            if (MoveTowardPoint(moveDestination.Value))
+                ClearDestination();
+        }
+
+        bool MoveTowardPoint(Vector3 flatTarget)
+        {
+            var groundHeight = ResolveGroundHeight(flatTarget);
+            flatTarget.y = groundHeight;
             var direction = flatTarget - transform.position;
             direction.y = 0f;
 
             if (direction.sqrMagnitude <= stoppingDistance * stoppingDistance)
-                return;
+                return true;
 
             var step = direction.normalized * (CurrentMoveSpeed * Time.deltaTime);
             transform.position += step;
-            facing.FaceDirection(direction);
+
+            var combat = GetComponent<PlayerCombat>();
+            if (combat == null || !combat.IsTargetInRange())
+                facing.FaceDirection(direction);
+
             isMoving = true;
+            return false;
+        }
+
+        void ClearDestination()
+        {
+            moveDestination = null;
+            HideMarker();
         }
 
         void ApplyMovementBobbing()
@@ -198,6 +169,7 @@ namespace Katana.Characters
             if (isMoving)
                 bobPhase += Time.deltaTime * bobFrequency;
 
+            var groundHeight = ResolveGroundHeight(transform.position);
             var bobOffset = isMoving ? Mathf.Sin(bobPhase) * bobAmplitude : 0f;
             var position = transform.position;
             transform.position = new Vector3(position.x, groundHeight + bobOffset, position.z);
@@ -206,20 +178,13 @@ namespace Katana.Characters
         void Start()
         {
             if (SpawnSafeZone.TryGet(out var zone))
-                groundHeight = zone.PlayerGroundHeight;
+                markerHeight = zone.PlatformTopY + 0.02f;
 
-            CameraFollowTarget.EnsureOn(transform, groundHeight);
+            CameraFollowTarget.EnsureOn(transform, ResolveGroundHeight(transform.position));
         }
 
-        Vector3 ToWorldDirection(Vector3 localDir)
-        {
-            if (cam == null)
-                return new Vector3(localDir.x, 0f, localDir.z);
-
-            var forward = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized;
-            var right = Vector3.ProjectOnPlane(cam.transform.right, Vector3.up).normalized;
-            return forward * localDir.z + right * localDir.x;
-        }
+        bool IsSelf(Transform hitTransform) =>
+            hitTransform == transform || hitTransform.IsChildOf(transform);
 
         void CreateClickMarker()
         {
@@ -235,7 +200,7 @@ namespace Katana.Characters
             if (clickMarker == null)
                 return;
 
-            clickMarker.transform.position = new Vector3(point.x, 0.05f, point.z);
+            clickMarker.transform.position = point;
             clickMarker.SetActive(true);
         }
 

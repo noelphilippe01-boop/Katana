@@ -64,7 +64,6 @@ namespace Katana.Editor
             RemoveComponent<DamageFloaterSystem>(managers);
             RemoveComponent<PauseMenuController>(managers);
             RemoveComponent<EnemyAggroSystem>(managers);
-            RemoveComponent<CombatStatsPanel>(managers);
             RemoveComponent<CombatHud>(managers);
             RemoveComponent<GameBootstrapper>(managers);
             RemoveComponent<SceneLandmarks>(managers);

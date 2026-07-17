@@ -11,6 +11,7 @@ namespace Katana.Characters
     {
         GameObject combatTarget;
         float attackCooldown;
+        bool combatEngaged;
         CharacterFacing facing;
         PlayerController movement;
         PlayerStats stats;
@@ -50,8 +51,11 @@ namespace Katana.Characters
 
         void OnEnemyKilled(GameObject enemy)
         {
-            if (combatTarget == enemy)
-                combatTarget = null;
+            if (combatTarget != enemy)
+                return;
+
+            combatTarget = null;
+            TryAcquireNextTargetInRange();
         }
 
         public void EngageTarget(GameObject target)
@@ -60,6 +64,14 @@ namespace Katana.Characters
                 return;
 
             combatTarget = target;
+            combatEngaged = true;
+        }
+
+        public void DisengageCombat()
+        {
+            combatEngaged = false;
+            combatTarget = null;
+            GameEventBus.RaiseTargetSelected(null);
         }
 
         public void ClearCombatTarget() => combatTarget = null;
@@ -78,13 +90,16 @@ namespace Katana.Characters
                 return;
 
             var health = combatTarget.GetComponent<EnemyHealth>();
-            if (health == null || !health.IsAlive)
-                combatTarget = null;
+            if (health != null && health.IsAlive)
+                return;
+
+            combatTarget = null;
+            TryAcquireNextTargetInRange();
         }
 
         void LateUpdate()
         {
-            if (combatTarget == null || stats == null)
+            if (!combatEngaged || combatTarget == null || stats == null)
                 return;
 
             var health = combatTarget.GetComponent<EnemyHealth>();
@@ -193,6 +208,39 @@ namespace Katana.Characters
         }
 
         public void RequestAbility(int slotIndex) { }
+
+        void TryAcquireNextTargetInRange()
+        {
+            if (!combatEngaged || stats == null)
+                return;
+
+            if (!GameSettings.AutoChainTargetsInRange)
+            {
+                combatEngaged = false;
+                GameEventBus.RaiseTargetSelected(null);
+                return;
+            }
+
+            var acquireRange = GetAutoAcquireRange();
+            var nextTarget = CombatTargetQuery.FindNearestEnemyInRange(transform.position, acquireRange);
+            if (nextTarget == null)
+            {
+                combatEngaged = false;
+                GameEventBus.RaiseTargetSelected(null);
+                return;
+            }
+
+            GameEventBus.RaiseTargetSelected(nextTarget);
+        }
+
+        float GetAutoAcquireRange()
+        {
+            var range = AttackRange;
+            if (EffectRadius > 0f)
+                range = Mathf.Max(range, EffectRadius);
+
+            return range;
+        }
 
         static float FlatDistance(Vector3 a, Vector3 b)
         {

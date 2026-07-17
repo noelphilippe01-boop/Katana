@@ -158,9 +158,6 @@ namespace Katana.Editor
             if (managers.GetComponent<CombatHud>() == null)
                 managers.AddComponent<CombatHud>();
 
-            if (managers.GetComponent<CombatStatsPanel>() == null)
-                managers.AddComponent<CombatStatsPanel>();
-
             if (managers.GetComponent<EnemyAggroSystem>() == null)
                 managers.AddComponent<EnemyAggroSystem>();
 

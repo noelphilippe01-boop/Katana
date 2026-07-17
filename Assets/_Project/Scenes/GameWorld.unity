@@ -477,7 +477,6 @@ GameObject:
   - component: {fileID: 927935454}
   - component: {fileID: 927935456}
   - component: {fileID: 927935455}
-  - component: {fileID: 927935457}
   - component: {fileID: 927935458}
   m_Layer: 0
   m_Name: --- MANAGERS ---
@@ -623,20 +622,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Project.Core::Katana.Core.NavMeshRuntimeBootstrap
   groundObjectName: Ground
---- !u!114 &927935457
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 927935446}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c33408059f4f27140b0ad1d884f21467, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Project.Gameplay::Katana.Combat.CombatStatsPanel
-  panelWidth: 280
-  margin: 16
 --- !u!114 &927935458
 MonoBehaviour:
   m_ObjectHideFlags: 0

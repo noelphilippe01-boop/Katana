@@ -12,6 +12,7 @@ namespace Katana.Core
         }
 
         MenuScreen screen = MenuScreen.Main;
+        SettingsMenuDrawer.Category settingsCategory = SettingsMenuDrawer.Category.Audio;
 
         void Start() => GameSettings.ApplyAudio();
 
@@ -66,47 +67,13 @@ namespace Katana.Core
 
         void DrawSettingsScreen()
         {
-            var titleStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 28,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter
-            };
-
-            var labelStyle = new GUIStyle(GUI.skin.label) { fontSize = 14 };
             var centerX = Screen.width * 0.5f;
             var panelX = centerX - 180f;
             var panelY = Screen.height * 0.22f;
 
-            GUI.Box(new Rect(panelX - 16f, panelY - 16f, 392f, 260f), GUIContent.none);
-            GUI.Label(new Rect(panelX, panelY, 360f, 36f), "Parametres", titleStyle);
+            SettingsMenuDrawer.Draw(ref settingsCategory, panelX, panelY);
 
-            var y = panelY + 52f;
-            GUI.Label(new Rect(panelX, y, 160f, 24f), "Volume principal", labelStyle);
-            GameSettings.MasterVolume = GUI.HorizontalSlider(
-                new Rect(panelX + 170f, y + 4f, 180f, 20f),
-                GameSettings.MasterVolume,
-                0f,
-                1f);
-
-            y += 40f;
-            GUI.Label(new Rect(panelX, y, 160f, 24f), "Volume musique", labelStyle);
-            GameSettings.MusicVolume = GUI.HorizontalSlider(
-                new Rect(panelX + 170f, y + 4f, 180f, 20f),
-                GameSettings.MusicVolume,
-                0f,
-                1f);
-
-            y += 40f;
-            GUI.Label(new Rect(panelX, y, 160f, 24f), "Volume effets", labelStyle);
-            GameSettings.SfxVolume = GUI.HorizontalSlider(
-                new Rect(panelX + 170f, y + 4f, 180f, 20f),
-                GameSettings.SfxVolume,
-                0f,
-                1f);
-
-            y += 56f;
-            if (DrawMenuButton(panelX + 60f, y, 240f, 40f, "Retour"))
+            if (DrawMenuButton(panelX + 60f, panelY + 248f, 240f, 40f, "Retour"))
                 screen = MenuScreen.Main;
         }
 

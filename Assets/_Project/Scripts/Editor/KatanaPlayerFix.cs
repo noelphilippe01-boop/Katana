@@ -63,17 +63,6 @@ namespace Katana.Editor
                 player.AddComponent<FacingMarker>();
 
             CameraFollowTarget.EnsureOn(player.transform);
-            EnsureCombatUi();
-        }
-
-        static void EnsureCombatUi()
-        {
-            var managers = GameObject.Find("--- MANAGERS ---");
-            if (managers == null)
-                return;
-
-            if (managers.GetComponent<CombatStatsPanel>() == null)
-                managers.AddComponent<CombatStatsPanel>();
         }
 
         static void RemoveLegacyPhysics(GameObject player)

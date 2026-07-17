@@ -14,6 +14,8 @@ namespace Katana.Core
         [SerializeField] Color rimColor = new(0.55f, 0.78f, 0.95f);
 
         public float SafeRadius => safeRadius;
+        public float PlatformRadius => platformRadius;
+        public float PlatformTopY => platformHeight;
         public float PlayerSpawnHeight => platformHeight + 1f;
         public float PlayerGroundHeight => PlayerSpawnHeight;
 
@@ -45,6 +47,7 @@ namespace Katana.Core
 
             Instance = this;
             EnsurePlatformVisual();
+            SanitizePlatformColliders();
         }
 
         void OnDestroy()
@@ -62,6 +65,25 @@ namespace Katana.Core
             return Vector3.Distance(Center, flat) <= safeRadius;
         }
 
+        public bool IsOnPlatformFootprint(Vector3 worldPosition)
+        {
+            var flat = worldPosition;
+            flat.y = 0f;
+            return Vector3.Distance(Center, flat) <= platformRadius;
+        }
+
+        public bool TrySnapToPlatformSurface(Vector3 worldPoint, out Vector3 surfacePoint)
+        {
+            if (!IsOnPlatformFootprint(worldPoint))
+            {
+                surfacePoint = default;
+                return false;
+            }
+
+            surfacePoint = new Vector3(worldPoint.x, PlatformTopY, worldPoint.z);
+            return true;
+        }
+
         public static SpawnSafeZone CreateAt(Vector3 center, Transform parent = null)
         {
             var existing = Object.FindAnyObjectByType<SpawnSafeZone>();
@@ -75,6 +97,7 @@ namespace Katana.Core
             root.transform.position = new Vector3(center.x, 0f, center.z);
             var zone = root.AddComponent<SpawnSafeZone>();
             zone.EnsurePlatformVisual();
+            zone.SanitizePlatformColliders();
             return zone;
         }
 
@@ -103,6 +126,46 @@ namespace Katana.Core
             ring.transform.localPosition = new Vector3(0f, 0.04f, 0f);
             ring.transform.localScale = new Vector3(safeRadius * 2f, 0.02f, safeRadius * 2f);
             SceneVisualBootstrap.ApplyColor(ring, new Color(0.35f, 0.55f, 0.75f, 0.45f), 0.15f);
+        }
+
+        void SanitizePlatformColliders()
+        {
+            RemoveCollider(transform.Find("SpawnPlatformRim"));
+            RemoveCollider(transform.Find("SafeZoneRing"));
+            RemoveCollider(transform.Find("SpawnPlatform"));
+            EnsureWalkSurfaceCollider();
+        }
+
+        void EnsureWalkSurfaceCollider()
+        {
+            var walkSurface = transform.Find("PlatformWalkSurface");
+            if (walkSurface == null)
+            {
+                var go = new GameObject("PlatformWalkSurface");
+                walkSurface = go.transform;
+                walkSurface.SetParent(transform);
+            }
+
+            walkSurface.localPosition = new Vector3(0f, platformHeight, 0f);
+            walkSurface.localRotation = Quaternion.identity;
+            walkSurface.localScale = Vector3.one;
+
+            foreach (var collider in walkSurface.GetComponents<Collider>())
+                Destroy(collider);
+
+            var box = walkSurface.gameObject.AddComponent<BoxCollider>();
+            box.size = new Vector3(platformRadius * 2f, 0.05f, platformRadius * 2f);
+            box.center = Vector3.zero;
+        }
+
+        static void RemoveCollider(Transform target)
+        {
+            if (target == null)
+                return;
+
+            var collider = target.GetComponent<Collider>();
+            if (collider != null)
+                Destroy(collider);
         }
 
         void SnapPlayerToSpawnIfNeeded()

@@ -160,7 +160,6 @@ namespace Katana.Editor
             managers.AddComponent<SceneVisualBootstrap>();
             managers.AddComponent<SceneLandmarks>();
             managers.AddComponent<CombatHud>();
-            managers.AddComponent<CombatStatsPanel>();
             managers.AddComponent<EnemyAggroSystem>();
             managers.AddComponent<PauseMenuController>();
             managers.AddComponent<DamageFloaterSystem>();

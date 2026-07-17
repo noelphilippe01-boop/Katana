@@ -33,7 +33,7 @@ namespace Katana.Combat
 
             var style = new GUIStyle(GUI.skin.label) { fontSize = 14 };
             GUI.Label(new Rect(12f, 12f, 560f, 120f),
-                "Katana — Combat\nClic ennemi: attaquer | ZQSD: deplacer | & e \": armes | Echap: pause",
+                "Katana — Combat\nClic sol: deplacer | Clic pres ennemi (ecran): combattre | & e \": armes | Echap: pause",
                 style);
 
             if (playerHealth != null)
