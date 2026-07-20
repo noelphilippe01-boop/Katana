@@ -37,3 +37,6 @@ Desktop.ini
 # StreamingAssets
 [Aa]ssets/StreamingAssets/aa.meta
 [Aa]ssets/StreamingAssets/aa/*
+
+# Node tooling
+Tools/**/node_modules/

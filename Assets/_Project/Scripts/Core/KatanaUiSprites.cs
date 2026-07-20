@@ -6,12 +6,15 @@ namespace Katana.Core
 {
     /// <summary>
     /// Sprites UI chargés depuis Resources/UI/Sprites. Fallback procédural si absent.
+    /// Post-traitement standard (transparence + crop) : Katana/Process UI Sprites
+    /// ou Tools/ui-sprite-postprocess (npm run process).
     /// </summary>
     public static class KatanaUiSprites
     {
         public enum SpriteId
         {
             WindowFrame,
+            WindowFrameOverlay,
             HudFrame,
             GridFrame,
             HealthBarBackground
@@ -34,6 +37,7 @@ namespace Katana.Core
             var path = id switch
             {
                 SpriteId.WindowFrame => "UI/Sprites/window_frame",
+                SpriteId.WindowFrameOverlay => "UI/Sprites/window_frame_overlay",
                 SpriteId.HudFrame => "UI/Sprites/window_frame",
                 SpriteId.GridFrame => "UI/Sprites/grid_frame",
                 SpriteId.HealthBarBackground => "UI/Sprites/health_bar_bg",
@@ -69,8 +73,9 @@ namespace Katana.Core
             return id switch
             {
                 SpriteId.HealthBarBackground => 10f,
-                SpriteId.GridFrame => 30f,
-                _ => 34f
+                SpriteId.GridFrame => 22f,
+                SpriteId.WindowFrame or SpriteId.HudFrame => 14f,
+                _ => 14f
             };
         }
 

@@ -150,6 +150,60 @@ namespace Katana.Core
             return rect;
         }
 
+        /// <summary>
+        /// Hôte de layout en coordonnées design, ancré en haut et mis à l'échelle pour remplir Inner.
+        /// </summary>
+        public static RectTransform CreateDesignLayoutHost(
+            Transform parent,
+            float designWidth,
+            float designHeight,
+            float? hostWidth = null,
+            float? hostHeight = null)
+        {
+            var host = new GameObject("WindowContent");
+            host.transform.SetParent(parent, false);
+            var hostRect = host.AddComponent<RectTransform>();
+            hostRect.anchorMin = Vector2.zero;
+            hostRect.anchorMax = Vector2.one;
+            hostRect.offsetMin = Vector2.zero;
+            hostRect.offsetMax = Vector2.zero;
+
+            var parentRect = parent as RectTransform;
+            var innerWidth = hostWidth ?? (parentRect != null && parentRect.rect.width > 1f ? parentRect.rect.width : designWidth);
+            var innerHeight = hostHeight ?? (parentRect != null && parentRect.rect.height > 1f ? parentRect.rect.height : designHeight);
+            var scale = Mathf.Min(innerWidth / designWidth, innerHeight / designHeight);
+
+            var layout = new GameObject("DesignLayout");
+            layout.transform.SetParent(host.transform, false);
+            var rect = layout.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.sizeDelta = new Vector2(designWidth, designHeight);
+            rect.anchoredPosition = Vector2.zero;
+            layout.transform.localScale = Vector3.one * scale;
+
+            var hostComponent = host.AddComponent<DesignLayoutHost>();
+            hostComponent.Initialize(designWidth, designHeight, layout.transform);
+            hostComponent.Refresh(innerWidth, innerHeight);
+            return rect;
+        }
+
+        /// <summary>
+        /// Contenu menu étiré sur toute la zone intérieure du cadre (titre + pied inclus).
+        /// </summary>
+        public static RectTransform CreateWindowContentHost(Transform parent)
+        {
+            var host = new GameObject("WindowContent");
+            host.transform.SetParent(parent, false);
+            var rect = host.AddComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            return rect;
+        }
+
         public static RectTransform CreatePanel(Transform parent, string name, Vector2 size, Color color)
         {
             var rect = KatanaUiVisuals.CreateWindowPanel(parent, name, size);

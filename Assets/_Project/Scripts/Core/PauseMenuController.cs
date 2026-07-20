@@ -88,7 +88,7 @@ namespace Katana.Core
             settingsPanel = new GameObject("SettingsPanelRoot");
             settingsPanel.transform.SetParent(rightPane.transform, false);
             StretchFull(settingsPanel.AddComponent<RectTransform>());
-            SettingsPanelView.Create(settingsPanel.transform, ShowPausePanel);
+            SettingsPanelView.Create(settingsPanel.transform, ShowPausePanel, allowResize: true);
         }
 
         static void StretchFull(RectTransform rect)

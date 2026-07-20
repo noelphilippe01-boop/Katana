@@ -6,6 +6,7 @@ namespace Katana.Core
     /// <summary>
     /// Icônes d'armes UI. Les PNG dans Resources/UI/Weapons doivent avoir un fond transparent
     /// (pas de rectangle sombre) pour s'afficher correctement dans les slots d'équipement.
+    /// Post-traitement standard : Katana/Process UI Sprites ou Tools/ui-sprite-postprocess.
     /// </summary>
     public static class KatanaWeaponIcons
     {

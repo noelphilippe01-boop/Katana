@@ -1,0 +1,11 @@
+{
+  "name": "katana-ui-sprite-tools",
+  "private": true,
+  "description": "Post-traitement des PNG UI Katana (transparence + crop).",
+  "scripts": {
+    "process": "node process-ui-sprites.cjs"
+  },
+  "dependencies": {
+    "sharp": "^0.34.2"
+  }
+}

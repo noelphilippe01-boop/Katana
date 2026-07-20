@@ -40,28 +40,27 @@ namespace Katana.Core
         Button interfaceTabButton;
 
         const float DesignPanelHeight = 480f;
-        const float DesignPanelWidth = 600f;
-        const float DesignPanelAspect = DesignPanelHeight / DesignPanelWidth;
 
-        public static SettingsPanelView Create(Transform parent, Action onBack)
+        public static SettingsPanelView Create(Transform parent, Action onBack, bool allowResize = false)
         {
             var canvas = parent.GetComponentInParent<Canvas>();
-            var windowWidth = SplitScreenMenuLayout.WindowReferenceWidth;
-            var proportionalHeight = windowWidth * DesignPanelAspect;
-            var windowHeight = SplitScreenMenuLayout.ResolveWindowHeight(canvas, windowWidth);
-            windowHeight = Mathf.Min(windowHeight, proportionalHeight);
-            var contentScale = SplitScreenMenuLayout.ResolveContentScale(windowWidth, windowHeight, DesignPanelHeight);
+            var profile = GameplayWindowProfile.Settings(canvas);
+            var scale = allowResize ? GameSettings.GetGameplayWindowScale(profile.WindowId) : 1f;
+            var windowSize = profile.ResolveWindowSize(scale);
+            var innerSize = profile.InnerSize(windowSize);
 
             var root = KatanaUiVisuals.CreateWindowPanel(
                 parent,
                 "SettingsPanel",
-                new Vector2(windowWidth, windowHeight));
-            KatanaUiFactory.LayoutRightMenuWindow(root);
+                windowSize);
 
             var inner = root.Find("Inner");
             var contentHost = inner != null
-                ? KatanaUiFactory.CreateScaledMenuContentHost(inner, windowWidth, DesignPanelHeight, contentScale)
-                : KatanaUiFactory.CreateScaledMenuContentHost(root, windowWidth, DesignPanelHeight, contentScale);
+                ? KatanaUiFactory.CreateDesignLayoutHost(inner, profile.DesignWidth, profile.DesignHeight, innerSize.x, innerSize.y)
+                : KatanaUiFactory.CreateDesignLayoutHost(root, profile.DesignWidth, profile.DesignHeight, innerSize.x, innerSize.y);
+
+            if (allowResize)
+                ResizableGameplayWindow.Attach(root, profile, resizable: true);
 
             var view = root.gameObject.AddComponent<SettingsPanelView>();
             view.Build(contentHost, onBack);

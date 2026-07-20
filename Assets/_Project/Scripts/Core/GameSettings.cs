@@ -23,6 +23,34 @@ namespace Katana.Core
         public const float DefaultSfxVolume = 0.85f;
         public const bool DefaultAutoChainTargetsInRange = true;
 
+        public static float GetGameplayWindowScale(string windowId) =>
+            Mathf.Clamp(
+                PlayerPrefs.GetFloat(GameplayWindowScalePrefix + windowId, DefaultGameplayWindowScale),
+                MinGameplayWindowScale,
+                MaxGameplayWindowScale);
+
+        public static void SetGameplayWindowScale(string windowId, float scale)
+        {
+            PlayerPrefs.SetFloat(
+                GameplayWindowScalePrefix + windowId,
+                Mathf.Clamp(scale, MinGameplayWindowScale, MaxGameplayWindowScale));
+            PlayerPrefs.Save();
+        }
+
+        public static void ResetGameplayWindowScales()
+        {
+            PlayerPrefs.DeleteKey(GameplayWindowScalePrefix + "inventory");
+            PlayerPrefs.DeleteKey(GameplayWindowScalePrefix + "settings");
+            PlayerPrefs.DeleteKey(GameplayWindowScalePrefix + "stats");
+            PlayerPrefs.DeleteKey(GameplayWindowScalePrefix + "skills");
+            PlayerPrefs.Save();
+        }
+
+        const string GameplayWindowScalePrefix = "katana.gameplay_window_scale.";
+        public const float DefaultGameplayWindowScale = 1f;
+        public const float MinGameplayWindowScale = 0.72f;
+        public const float MaxGameplayWindowScale = 1.38f;
+
         public static float MasterVolume
         {
             get => PlayerPrefs.GetFloat(MasterVolumeKey, DefaultMasterVolume);
@@ -99,6 +127,7 @@ namespace Katana.Core
         {
             MenuUiScale = DefaultMenuUiScale;
             HudUiScale = DefaultHudUiScale;
+            ResetGameplayWindowScales();
         }
     }
 }

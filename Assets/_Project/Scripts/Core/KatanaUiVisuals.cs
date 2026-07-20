@@ -250,7 +250,14 @@ namespace Katana.Core
             frameRect.sizeDelta = new Vector2(frameWidth, frameHeight);
 
             var frameImage = frame.AddComponent<Image>();
-            KatanaUiSprites.TryApplySliced(frameImage, KatanaUiSprites.SpriteId.GridFrame, KatanaUiTheme.InventoryGridFrame);
+            if (KatanaUiSprites.Get(KatanaUiSprites.SpriteId.WindowFrame) != null)
+            {
+                frameImage.color = KatanaUiTheme.InventoryGridInner;
+            }
+            else
+            {
+                KatanaUiSprites.TryApplySliced(frameImage, KatanaUiSprites.SpriteId.GridFrame, KatanaUiTheme.InventoryGridFrame);
+            }
             frameImage.raycastTarget = false;
 
             var inner = new GameObject("InventoryGridInner");
@@ -331,19 +338,39 @@ namespace Katana.Core
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
 
-            var border = go.AddComponent<Image>();
-            KatanaUiSprites.TryApplySliced(border, spriteId, borderColor);
-
-            var rect = go.GetComponent<RectTransform>();
+            var rect = go.AddComponent<RectTransform>();
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.sizeDelta = size;
+
+            var frameBack = new GameObject("FrameBack");
+            frameBack.transform.SetParent(go.transform, false);
+            frameBack.transform.SetAsFirstSibling();
+            var backImage = frameBack.AddComponent<Image>();
+            backImage.raycastTarget = true;
+            KatanaUiSprites.TryApplySliced(backImage, spriteId, borderColor);
+            StretchFull(frameBack.GetComponent<RectTransform>());
 
             var inner = new GameObject("Inner");
             inner.transform.SetParent(go.transform, false);
             var innerImage = inner.AddComponent<Image>();
-            innerImage.color = KatanaUiSprites.Get(spriteId) != null ? Color.clear : fillColor;
+            innerImage.color = fillColor;
             innerImage.raycastTarget = false;
             StretchInset(inner.GetComponent<RectTransform>(), KatanaUiSprites.ContentInset(spriteId));
+
+            if (KatanaUiSprites.Get(KatanaUiSprites.SpriteId.WindowFrameOverlay) != null
+                && (spriteId == KatanaUiSprites.SpriteId.WindowFrame || spriteId == KatanaUiSprites.SpriteId.HudFrame))
+            {
+                var overlay = new GameObject("FrameOverlay");
+                overlay.transform.SetParent(go.transform, false);
+                overlay.transform.SetAsLastSibling();
+                var overlayImage = overlay.AddComponent<Image>();
+                overlayImage.raycastTarget = false;
+                KatanaUiSprites.TryApplySliced(
+                    overlayImage,
+                    KatanaUiSprites.SpriteId.WindowFrameOverlay,
+                    borderColor);
+                StretchFull(overlay.GetComponent<RectTransform>());
+            }
 
             return rect;
         }
@@ -386,6 +413,14 @@ namespace Katana.Core
             var outline = target.AddComponent<Outline>();
             outline.effectColor = color;
             outline.effectDistance = new Vector2(1f, -1f);
+        }
+
+        static void StretchFull(RectTransform rect)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
         }
 
         static void StretchInset(RectTransform rect, float inset)

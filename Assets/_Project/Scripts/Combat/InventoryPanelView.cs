@@ -8,28 +8,24 @@ namespace Katana.Combat
 {
     public class InventoryPanelView : MonoBehaviour
     {
-        static float PanelWidth => SplitScreenMenuLayout.WindowReferenceWidth;
-        const float DesignPanelHeight = 870f;
-        const float ContentSidePadding = 16f;
-        const float HeaderTop = 58f;
-        const float FooterBottom = 16f;
+        const float DesignPanelWidth = GameplayWindowProfile.InventoryDesignWidth;
+        const float DesignPanelHeight = GameplayWindowProfile.InventoryDesignHeight;
+        const float ContentSidePadding = 4f;
+        const float TitleTopPadding = 16f;
+        const float TitleBandHeight = 40f;
+        const float TitleBottomPadding = 16f;
+        const float HeaderTop = TitleTopPadding + TitleBandHeight + TitleBottomPadding;
+        const float FooterBottom = 20f;
         const float FooterHeight = 40f;
-        const float SectionGap = 10f;
-        const float InventoryGridVerticalPadding = 12f;
+        const float SectionGap = 2f;
+        const float InventoryGridVerticalPadding = 4f;
+        const float EquipmentSectionPaddingY = 4f;
 
-        const float SmallSlot = 80f;
-        const float TallSlotWidth = 80f;
-        const float TallSlotHeight = 146f;
-        const float ArmorSlotHeight = 146f;
-        const float PantsSlotHeight = 88f;
-        const float AmuletSlot = 54f;
-        const float EquipmentColumnGap = 12f;
-        const float EquipmentColumnX = SmallSlot * 0.5f + EquipmentColumnGap + SmallSlot * 0.5f;
-
-        const float YHelmet = -12f;
-        const float YTallRow = -103f;
-        const float YJewelryRow = -260f;
-        const float YLowerRow = -351f;
+        const float EquipmentUnit = 38f;
+        const float EquipmentGridGap = 6f;
+        const float EquipmentFramePad = 6f;
+        const int EquipmentGridColumns = 6;
+        const int EquipmentGridRows = 9;
 
         const int InventoryColumns = 14;
         const int InventoryRows = 6;
@@ -40,7 +36,16 @@ namespace Katana.Combat
         EquipmentSlotView mainWeaponSlot;
         WeaponLoadout boundLoadout;
 
-        static float InventoryContentWidth => PanelWidth - ContentSidePadding * 2f;
+        static float InventoryContentWidth => DesignPanelWidth - ContentSidePadding * 2f;
+
+        static float CellStep => EquipmentUnit + EquipmentGridGap;
+
+        static float GridSpan(int cells) =>
+            cells * EquipmentUnit + (cells - 1) * EquipmentGridGap;
+
+        static float EquipmentDollWidth => GridSpan(EquipmentGridColumns) + EquipmentFramePad * 2f;
+
+        static float EquipmentContentHeight => GridSpan(EquipmentGridRows) + EquipmentFramePad * 2f;
 
         static float ResolveInventorySlotSize()
         {
@@ -57,31 +62,46 @@ namespace Katana.Combat
         static float InventoryBlockHeight =>
             InventoryGridInnerHeight + GridFramePadding * 2f + InventoryGridVerticalPadding * 2f;
 
-        static float EquipmentBlockHeight =>
-            DesignPanelHeight - HeaderTop - InventoryBlockHeight - SectionGap - InventorySectionBottom;
+        static float FooterReserved => FooterBottom + FooterHeight + SectionGap;
+
+        static float EquipmentBlockHeight => EquipmentContentHeight + EquipmentSectionPaddingY * 2f;
+
+        static float EquipmentDollHeight => EquipmentContentHeight;
 
         static float InventorySectionTop => HeaderTop + EquipmentBlockHeight + SectionGap;
 
-        static float InventorySectionBottom => FooterBottom + FooterHeight + SectionGap;
+        static Vector2 GridSlotTopPosition(int col, int row, int horizontalCells)
+        {
+            var x = -EquipmentDollWidth * 0.5f
+                + EquipmentFramePad
+                + col * CellStep
+                + GridSpan(horizontalCells) * 0.5f;
+            var y = -(EquipmentFramePad + row * CellStep);
+            return new Vector2(x, y);
+        }
 
-        static float EquipmentDollHeight => EquipmentBlockHeight - 20f;
+        static Vector2 GridSlotSize(int verticalCells, int horizontalCells) =>
+            new(GridSpan(horizontalCells), GridSpan(verticalCells));
 
         public static InventoryPanelView Create(Transform parent, Action onClose)
         {
             var canvas = parent.GetComponentInParent<Canvas>();
-            var windowHeight = SplitScreenMenuLayout.ResolveWindowHeight(canvas, PanelWidth);
-            var contentScale = SplitScreenMenuLayout.ResolveContentScale(PanelWidth, windowHeight, DesignPanelHeight);
+            var profile = GameplayWindowProfile.Inventory(canvas);
+            var scale = GameSettings.GetGameplayWindowScale(profile.WindowId);
+            var windowSize = profile.ResolveWindowSize(scale);
+            var innerSize = profile.InnerSize(windowSize);
 
             var root = KatanaUiVisuals.CreateWindowPanel(
                 parent,
                 "InventoryPanel",
-                new Vector2(PanelWidth, windowHeight));
-            KatanaUiFactory.LayoutRightMenuWindow(root);
+                windowSize);
 
             var inner = root.Find("Inner");
             var contentHost = inner != null
-                ? KatanaUiFactory.CreateScaledMenuContentHost(inner, PanelWidth, DesignPanelHeight, contentScale)
-                : KatanaUiFactory.CreateScaledMenuContentHost(root, PanelWidth, DesignPanelHeight, contentScale);
+                ? KatanaUiFactory.CreateDesignLayoutHost(inner, profile.DesignWidth, profile.DesignHeight, innerSize.x, innerSize.y)
+                : KatanaUiFactory.CreateDesignLayoutHost(root, profile.DesignWidth, profile.DesignHeight, innerSize.x, innerSize.y);
+
+            ResizableGameplayWindow.Attach(root, profile, resizable: true);
 
             var view = root.gameObject.AddComponent<InventoryPanelView>();
             view.Build(contentHost, onClose);
@@ -90,21 +110,30 @@ namespace Katana.Combat
 
         void Build(RectTransform root, Action onClose)
         {
-            KatanaUiFactory.CreateText(root, "Title", "Inventaire", 34, TextAnchor.UpperCenter, FontStyle.Bold)
-                .rectTransform.SetAnchors(new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(20f, -62f), new Vector2(-20f, -10f));
-
             BuildEquipmentSection(root);
             BuildInventorySection(root);
             BuildFooter(root, onClose);
+
+            var title = KatanaUiFactory.CreateText(root, "Title", "Inventaire", 34, TextAnchor.UpperCenter, FontStyle.Bold);
+            title.color = KatanaUiTheme.TextPrimary;
+            title.rectTransform.SetAsLastSibling();
+            title.rectTransform.SetAnchors(
+                new Vector2(0f, 1f),
+                new Vector2(1f, 1f),
+                new Vector2(ContentSidePadding, -(TitleTopPadding + TitleBandHeight)),
+                new Vector2(-ContentSidePadding, -TitleTopPadding));
         }
 
         void BuildEquipmentSection(RectTransform root)
         {
-            var sectionBottom = DesignPanelHeight - InventorySectionTop;
-            var section = CreateSectionBetween(root, "EquipmentSection", HeaderTop, sectionBottom);
+            var equipmentSectionBottom = DesignPanelHeight - HeaderTop - EquipmentBlockHeight;
+            var section = CreateSectionBetween(root, "EquipmentSection", HeaderTop, equipmentSectionBottom);
 
             var frame = KatanaUiVisuals.CreateInsetPanel(section, "EquipmentFrame", KatanaUiTheme.PanelFillInset);
-            StretchSection(frame, 0f, 0f, 0f, 0f);
+            frame.anchorMin = frame.anchorMax = new Vector2(0.5f, 1f);
+            frame.pivot = new Vector2(0.5f, 1f);
+            frame.sizeDelta = new Vector2(EquipmentDollWidth, EquipmentBlockHeight);
+            frame.anchoredPosition = Vector2.zero;
 
             var dollHost = new GameObject("EquipmentDoll");
             dollHost.transform.SetParent(frame, false);
@@ -112,71 +141,45 @@ namespace Katana.Combat
             dollRect.anchorMin = new Vector2(0.5f, 1f);
             dollRect.anchorMax = new Vector2(0.5f, 1f);
             dollRect.pivot = new Vector2(0.5f, 1f);
-            dollRect.sizeDelta = new Vector2(PanelWidth - ContentSidePadding * 2f - 16f, EquipmentDollHeight);
-            var dollVerticalInset = Mathf.Max(0f, (EquipmentBlockHeight - EquipmentDollHeight) * 0.5f);
-            dollRect.anchoredPosition = new Vector2(0f, -dollVerticalInset);
+            dollRect.sizeDelta = new Vector2(EquipmentDollWidth, EquipmentDollHeight);
+            dollRect.anchoredPosition = new Vector2(0f, -EquipmentSectionPaddingY);
 
-            KatanaUiVisuals.CreateEquipmentSlot(dollHost.transform, EquipmentSlotKind.Helmet, new Vector2(0f, YHelmet), new Vector2(SmallSlot, SmallSlot));
-            KatanaUiVisuals.CreateEquipmentSlot(
-                dollHost.transform,
-                EquipmentSlotKind.Amulet,
-                new Vector2(SmallSlot * 0.5f + AmuletSlot * 0.5f + 8f, YHelmet + 6f),
-                new Vector2(AmuletSlot, AmuletSlot));
+            PlaceGridEquipmentSlot(dollHost.transform, EquipmentSlotKind.Helmet, 2, 0, 2, 2);
+            PlaceGridEquipmentSlot(dollHost.transform, EquipmentSlotKind.Amulet, 4, 1, 1, 1);
 
-            mainWeaponSlot = KatanaUiVisuals.CreateEquipmentSlot(
-                dollHost.transform,
-                EquipmentSlotKind.MainHand,
-                new Vector2(-EquipmentColumnX, YTallRow),
-                new Vector2(TallSlotWidth, TallSlotHeight));
-            KatanaUiVisuals.CreateEquipmentSlot(
-                dollHost.transform,
-                EquipmentSlotKind.Chest,
-                new Vector2(0f, YTallRow),
-                new Vector2(SmallSlot, ArmorSlotHeight));
-            KatanaUiVisuals.CreateEquipmentSlot(
-                dollHost.transform,
-                EquipmentSlotKind.OffHand,
-                new Vector2(EquipmentColumnX, YTallRow),
-                new Vector2(TallSlotWidth, TallSlotHeight));
+            mainWeaponSlot = PlaceGridEquipmentSlot(dollHost.transform, EquipmentSlotKind.MainHand, 0, 2, 3, 2);
+            PlaceGridEquipmentSlot(dollHost.transform, EquipmentSlotKind.Chest, 2, 2, 3, 2);
+            PlaceGridEquipmentSlot(dollHost.transform, EquipmentSlotKind.OffHand, 4, 2, 3, 2);
 
-            KatanaUiVisuals.CreateEquipmentSlot(
-                dollHost.transform,
-                EquipmentSlotKind.Ring,
-                new Vector2(-EquipmentColumnX, YJewelryRow),
-                new Vector2(SmallSlot, SmallSlot));
-            KatanaUiVisuals.CreateEquipmentSlot(
-                dollHost.transform,
-                EquipmentSlotKind.Belt,
-                new Vector2(0f, YJewelryRow),
-                new Vector2(SmallSlot, SmallSlot));
-            KatanaUiVisuals.CreateEquipmentSlot(
-                dollHost.transform,
-                EquipmentSlotKind.Ring,
-                new Vector2(EquipmentColumnX, YJewelryRow),
-                new Vector2(SmallSlot, SmallSlot));
+            PlaceGridEquipmentSlot(dollHost.transform, EquipmentSlotKind.Ring, 1, 5, 1, 1);
+            PlaceGridEquipmentSlot(dollHost.transform, EquipmentSlotKind.Belt, 2, 5, 1, 2);
+            PlaceGridEquipmentSlot(dollHost.transform, EquipmentSlotKind.Ring, 4, 5, 1, 1);
 
-            KatanaUiVisuals.CreateEquipmentSlot(
-                dollHost.transform,
-                EquipmentSlotKind.Gloves,
-                new Vector2(-EquipmentColumnX, YLowerRow),
-                new Vector2(SmallSlot, SmallSlot));
-            KatanaUiVisuals.CreateEquipmentSlot(
-                dollHost.transform,
-                EquipmentSlotKind.Pants,
-                new Vector2(0f, YLowerRow),
-                new Vector2(SmallSlot, PantsSlotHeight));
-            KatanaUiVisuals.CreateEquipmentSlot(
-                dollHost.transform,
-                EquipmentSlotKind.Boots,
-                new Vector2(EquipmentColumnX, YLowerRow),
-                new Vector2(SmallSlot, SmallSlot));
+            PlaceGridEquipmentSlot(dollHost.transform, EquipmentSlotKind.Pants, 2, 6, 3, 2);
+            PlaceGridEquipmentSlot(dollHost.transform, EquipmentSlotKind.Gloves, 0, 7, 2, 2);
+            PlaceGridEquipmentSlot(dollHost.transform, EquipmentSlotKind.Boots, 4, 7, 2, 2);
 
             RefreshWeaponSlot();
         }
 
+        static EquipmentSlotView PlaceGridEquipmentSlot(
+            Transform parent,
+            EquipmentSlotKind kind,
+            int col,
+            int row,
+            int verticalCells,
+            int horizontalCells)
+        {
+            return KatanaUiVisuals.CreateEquipmentSlot(
+                parent,
+                kind,
+                GridSlotTopPosition(col, row, horizontalCells),
+                GridSlotSize(verticalCells, horizontalCells));
+        }
+
         void BuildInventorySection(RectTransform root)
         {
-            var section = CreateSectionBetween(root, "InventorySection", InventorySectionTop, InventorySectionBottom);
+            var section = CreateSectionBetween(root, "InventorySection", InventorySectionTop, FooterReserved);
 
             var slotSize = ResolveInventorySlotSize();
             var gridWidth = InventoryGridInnerWidth;
